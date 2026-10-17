@@ -64,11 +64,14 @@ func (p *githubTokenProvider) GetToken(ctx context.Context, _ auth.HTTPDoer) (to
 	return result.Value, nil
 }
 func openAIAuthOption() (option.RequestOption, error) {
+	if key := os.Getenv("OPENAI_API_KEY"); strings.TrimSpace(key) != "" {
+		return option.WithAPIKey(key), nil
+	}
 	providerID := os.Getenv("OPENAI_IDENTITY_PROVIDER_ID")
 	accountID := os.Getenv("OPENAI_SERVICE_ACCOUNT_ID")
 	audience := os.Getenv("OPENAI_WIF_AUDIENCE")
-	// ActionsやWIF設定がある場合、設定漏れをAPIキーで隠さない。
-	if os.Getenv("GITHUB_ACTIONS") == "true" || providerID != "" || accountID != "" || audience != "" {
+	// APIキーがない場合のみ、明示されたWorkload Identity設定を使う。
+	if providerID != "" || accountID != "" || audience != "" {
 		for _, key := range []string{"OPENAI_IDENTITY_PROVIDER_ID", "OPENAI_SERVICE_ACCOUNT_ID", "OPENAI_WIF_AUDIENCE", "ACTIONS_ID_TOKEN_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_TOKEN"} {
 			if strings.TrimSpace(os.Getenv(key)) == "" {
 				return nil, fmt.Errorf("認証設定の%sがありません。Workload Identityを使うActionsではid-token: writeも設定してください", key)
@@ -83,7 +86,7 @@ func openAIAuthOption() (option.RequestOption, error) {
 		return option.WithWorkloadIdentity(auth.WorkloadIdentity{IdentityProviderID: providerID, ServiceAccountID: accountID, Provider: provider}), nil
 	}
 	if strings.TrimSpace(os.Getenv("OPENAI_API_KEY")) == "" {
-		return nil, fmt.Errorf("ローカル実行にはOPENAI_API_KEYを設定してください。ActionsではWorkload Identity認証を使用します")
+		return nil, fmt.Errorf("OPENAI_API_KEYを設定してください。Actionsでは同名のRepository Secretに登録してください")
 	}
 	return option.WithAPIKey(os.Getenv("OPENAI_API_KEY")), nil
 }

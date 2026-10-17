@@ -19,11 +19,8 @@ jobs:
     timeout-minutes: 90
     permissions:
       contents: write
-      id-token: write
     env:
-      OPENAI_IDENTITY_PROVIDER_ID: ${{ vars.OPENAI_IDENTITY_PROVIDER_ID }}
-      OPENAI_SERVICE_ACCOUNT_ID: ${{ vars.OPENAI_SERVICE_ACCOUNT_ID }}
-      OPENAI_WIF_AUDIENCE: ${{ vars.OPENAI_WIF_AUDIENCE }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       INTEREST_PROMPT: ${{ secrets.INTEREST_PROMPT }}
       SUMMARY_PROMPT: ${{ secrets.SUMMARY_PROMPT }}
       INTEREST_PROMPT_FILE: prompts/interest.md

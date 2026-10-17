@@ -66,39 +66,9 @@ SlackとGitの更新は同時には確定できないため、投稿成功から
 
 ## GitHub Actionsで使う
 
-OpenAIへの認証にはWorkload Identity Federationを使います。GitHub Actionsの実行IDから短期間有効なOpenAIトークンを取得し、実行中に必要な更新も行います。Actions用のOpenAI APIキーを保存する必要はありません。
+OpenAIへの認証にはAPIキーを使います。GitHubの **Settings → Secrets and variables → Actions → Secrets** に、`OPENAI_API_KEY`という名前でAPIキーを登録してください。ワークフローはこのSecretを読み込みます。
 
-### OpenAIのWorkload Identity Provider
-
-OpenAIの **Organization Settings → Security → Workload Identity Provider** でProviderを作成し、次を設定します。
-
-| 項目 | 設定値 |
-| --- | --- |
-| OIDC Issuer URL | `https://token.actions.githubusercontent.com` |
-| Audience | `https://api.openai.com/v1`など、この実行用に決めた値 |
-| 署名検証 | GitHubのOIDC discoveryを使用 |
-
-対象プロジェクトのService Accountを用意し、ProviderにService Account Mappingを作成します。Mappingの各claimを次の値に一致させます。
-
-| Claim | 値 |
-| --- | --- |
-| `iss` | `https://token.actions.githubusercontent.com` |
-| `aud` | Providerで設定したAudience |
-| `repository` | `catatsuy/rss-curator` |
-| `ref` | `refs/heads/main` |
-| `workflow_ref` | `catatsuy/rss-curator/.github/workflows/rss.yml@refs/heads/main` |
-
-別のリポジトリで使う場合は`repository`と`workflow_ref`を変更してください。Service Accountには記事判定と要約に必要なAPI・モデルの利用権限を設定します。手順の詳細は[OpenAIのGitHub Actions向け認証設定](https://developers.openai.com/api/docs/guides/workload-identity-federation/github-actions)を参照してください。
-
-GitHubの **Settings → Secrets and variables → Actions → Variables** に次を登録します。
-
-| Variable | 内容 |
-| --- | --- |
-| `OPENAI_IDENTITY_PROVIDER_ID` | 作成したWorkload Identity ProviderのID |
-| `OPENAI_SERVICE_ACCOUNT_ID` | Mappingで使用するService AccountのID |
-| `OPENAI_WIF_AUDIENCE` | ProviderのAudienceと完全に同じ値 |
-
-ワークフローには`id-token: write`を設定しています。OIDC取得用のURLとトークンはGitHub Actionsが自動的に渡すため、手動登録は不要です。認証設定が不足している場合はエラーにします。上記Mappingでは`main`のワークフローが認証対象です。
+Workload Identity用のVariablesや`id-token: write`は不要です。以前登録したVariablesが残っていても、APIキーを優先します。
 
 ### プロンプトとSlack
 
@@ -163,7 +133,7 @@ Actionsでは同名のRepository variablesでモデルと閾値を変更でき�
 
 Go 1.27.2以上を用意し、[notify_slackの最新Release](https://github.com/catatsuy/notify_slack/releases/latest)からOS・CPUに対応するバイナリをダウンロードしてPATHへ配置します。
 
-ローカル実行では`OPENAI_API_KEY`を使えます。Workload Identity用の環境変数が設定されている場合はそちらを使用するため、APIキーで実行するときは解除してください。dry-runではどちらの認証も不要です。
+ローカル実行でも`OPENAI_API_KEY`を設定します。dry-runでは認証は不要です。
 
 ```bash
 go build -o rss-curator .

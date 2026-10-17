@@ -58,8 +58,8 @@ func TestAuthConfiguration(t *testing.T) {
 		t.Fatal(e)
 	}
 	t.Setenv("GITHUB_ACTIONS", "true")
-	if _, e := openAIAuthOption(); e == nil {
-		t.Fatal("ActionsでWorkload Identity設定なしにAPIキーへフォールバックしました")
+	if _, e := openAIAuthOption(); e != nil {
+		t.Fatal("ActionsでAPIキーを使用できません", e)
 	}
 	settings := map[string]string{"OPENAI_IDENTITY_PROVIDER_ID": "idp-test", "OPENAI_SERVICE_ACCOUNT_ID": "sa-test", "OPENAI_WIF_AUDIENCE": "https://api.openai.com/v1", "ACTIONS_ID_TOKEN_REQUEST_URL": "https://oidc.example/token?job=1", "ACTIONS_ID_TOKEN_REQUEST_TOKEN": "github-secret"}
 	for k, v := range settings {
@@ -84,6 +84,10 @@ func TestAuthConfiguration(t *testing.T) {
 	t.Setenv("GITHUB_ACTIONS", "")
 	t.Setenv("OPENAI_API_KEY", "local-key")
 	t.Setenv("ACTIONS_ID_TOKEN_REQUEST_URL", "http://oidc.example/token")
+	if _, e := openAIAuthOption(); e != nil {
+		t.Fatal("古いWIF設定がある場合もAPIキーを優先してください", e)
+	}
+	t.Setenv("OPENAI_API_KEY", "")
 	if _, e := openAIAuthOption(); e == nil {
 		t.Fatal("WIF設定があるのに不正な取得先を受理しました")
 	}
