@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -51,7 +52,11 @@ type runner struct {
 	dry               bool
 	manifest          Manifest
 	claimed           map[string]bool
+	post              func(string, string) error
+	checkpoint        func() error
 }
+
+var errDelivery = errors.New("投稿処理を継続できません")
 
 func readFeeds(path string) ([]Feed, error) {
 	b, e := os.ReadFile(path)
@@ -160,6 +165,20 @@ func (r *runner) emit(a Article, source, id, summary string) error {
 		}
 	}
 	r.manifest.Articles = append(r.manifest.Articles, e)
+	if !r.dry && r.post != nil {
+		if err := r.post(id, filepath.Join(r.output, e.Path)); err != nil {
+			return fmt.Errorf("%w: %v", errDelivery, err)
+		}
+		r.state.Processed[id] = time.Now().UTC()
+		if err := r.save(); err != nil {
+			return fmt.Errorf("%w: %v", errDelivery, err)
+		}
+		if r.checkpoint != nil {
+			if err := r.checkpoint(); err != nil {
+				return fmt.Errorf("%w: 状態の永続化に失敗しました", errDelivery)
+			}
+		}
+	}
 	return nil
 }
 func (r *runner) process(ctx context.Context, source, mode, raw, title, mime, intro string, keys []string) error {
@@ -224,9 +243,15 @@ func (r *runner) process(ctx context.Context, source, mode, raw, title, mime, in
 		}
 		return nil
 	}()
+	if errors.Is(articleErr, errDelivery) {
+		return articleErr
+	}
 	if mode == "digest" && !a.PDF && !a.Paper {
 		for _, link := range digestLinks(a) {
 			if e = r.process(ctx, source+"の紹介", "select", link.URL, link.Title, "", link.Context, []string{hash(link.URL)}); e != nil {
+				if errors.Is(e, errDelivery) {
+					return e
+				}
 				slog.Error("紹介先記事の処理に失敗しました", "id", hash(link.URL), "エラー", e)
 			}
 			if err := r.save(); err != nil {
@@ -237,6 +262,10 @@ func (r *runner) process(ctx context.Context, source, mode, raw, title, mime, in
 	return articleErr
 }
 func run(ctx context.Context, config, statePath, output string, dry bool) error {
+	return runWithDelivery(ctx, config, statePath, output, dry, nil, nil)
+}
+
+func runWithDelivery(ctx context.Context, config, statePath, output string, dry bool, post func(string, string) error, checkpoint func() error) error {
 	feeds, e := readFeeds(config)
 	if e != nil {
 		return e
@@ -263,6 +292,10 @@ func run(ctx context.Context, config, statePath, output string, dry bool) error 
 		return e
 	}
 	r := &runner{client: &http.Client{Timeout: 90 * time.Second}, ai: ai, state: s, statePath: statePath, output: output, dry: dry, manifest: Manifest{DryRun: dry, Articles: []Entry{}}, claimed: map[string]bool{}}
+	if !dry {
+		r.post = post
+		r.checkpoint = checkpoint
+	}
 	for _, f := range feeds {
 		feed, e := fetchFeed(ctx, r.client, f.URL)
 		if e != nil {
@@ -318,6 +351,9 @@ func run(ctx context.Context, config, statePath, output string, dry bool) error 
 				}
 			}
 			if e = r.process(ctx, f.Name, f.Mode, raw, item.Title, mime, "", keys); e != nil {
+				if errors.Is(e, errDelivery) {
+					return e
+				}
 				slog.Error("記事の処理に失敗しました", "id", keys[0], "エラー", e)
 			}
 			if e = r.save(); e != nil {

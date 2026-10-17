@@ -443,7 +443,7 @@ func TestShellDelivery(t *testing.T) {
 			command(repo, "config", "user.name", "テスト")
 			command(repo, "remote", "add", "origin", remote)
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprint(w, `<rss version="2.0"><channel><title>テスト</title><item><guid>pdf</guid><title>PDF</title><link>https://example.com/article.pdf</link></item></channel></rss>`)
+				fmt.Fprint(w, `<rss version="2.0"><channel><title>テスト</title><item><guid>pdf</guid><title>PDF</title><link>https://example.com/article.pdf</link></item><item><guid>pdf2</guid><title>PDF2</title><link>https://example.com/second.pdf</link></item></channel></rss>`)
 			}))
 			defer srv.Close()
 			mustWrite(t, filepath.Join(repo, "feeds.json"), `[{"name":"テスト","url":"`+srv.URL+`","mode":"all"}]`)
@@ -455,15 +455,23 @@ func TestShellDelivery(t *testing.T) {
 			if fail {
 				exitCode = "1"
 			}
-			if e := os.WriteFile(filepath.Join(mockDir, "notify_slack"), []byte("#!/usr/bin/env bash\ncat > /dev/null\nexit "+exitCode+"\n"), 0700); e != nil {
+			if e := os.WriteFile(filepath.Join(mockDir, "notify_slack"), []byte("#!/usr/bin/env bash\ncat > /dev/null\necho post >> \"$POST_LOG\"\nexit "+exitCode+"\n"), 0700); e != nil {
 				t.Fatal(e)
 			}
 			cmd := exec.Command("bash", "scripts/run.sh")
 			cmd.Dir = repo
-			cmd.Env = append(os.Environ(), "PATH="+mockDir+":"+os.Getenv("PATH"), "RSS_CURATOR_BIN="+binary, "OPENAI_API_KEY=test", "INTEREST_PROMPT=非公開判定", "SUMMARY_PROMPT=非公開要約", "NOTIFY_SLACK_TOKEN=非公開token", "NOTIFY_SLACK_CHANNEL_ID=Ctest")
+			cmd.Env = append(os.Environ(), "PATH="+mockDir+":"+os.Getenv("PATH"), "RSS_CURATOR_BIN="+binary, "POST_LOG="+filepath.Join(root, "posts"), "OPENAI_API_KEY=test", "INTEREST_PROMPT=非公開判定", "SUMMARY_PROMPT=非公開要約", "NOTIFY_SLACK_TOKEN=非公開token", "NOTIFY_SLACK_CHANNEL_ID=Ctest")
 			b, e := cmd.CombinedOutput()
 			if (e != nil) != fail {
 				t.Fatalf("投稿結果の終了コード: %s %v", b, e)
+			}
+			posts, err := os.ReadFile(filepath.Join(root, "posts"))
+			wantPosts := 2
+			if fail {
+				wantPosts = 1
+			}
+			if err != nil || len(strings.Fields(string(posts))) != wantPosts {
+				t.Fatalf("投稿失敗後に後続記事へ進みました: %q %v", posts, err)
 			}
 			raw := command(root, "--git-dir="+remote, "show", "rss-state:state.json")
 			var s State
