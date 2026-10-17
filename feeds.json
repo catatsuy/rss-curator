@@ -1,0 +1,83 @@
+[
+  {
+    "name": "Anthropic Engineering",
+    "url": "https://raw.githubusercontent.com/taobojlen/anthropic-rss-feed/main/anthropic_engineering_rss.xml",
+    "mode": "select"
+  },
+  {
+    "name": "Valkey",
+    "url": "https://valkey.io/atom.xml",
+    "mode": "select"
+  },
+  {
+    "name": "Performance @ Shopify",
+    "url": "https://performance.shopify.com/blogs/blog.atom",
+    "mode": "select"
+  },
+  {
+    "name": "OONI",
+    "url": "https://ooni.org/reports/index.xml",
+    "mode": "select"
+  },
+  {
+    "name": "Feisty Duck",
+    "url": "https://www.feistyduck.com/newsletter/feed",
+    "mode": "digest"
+  },
+  {
+    "name": "System Security Group",
+    "url": "https://upb-syssec.github.io/feed",
+    "mode": "select"
+  },
+  {
+    "name": "Chrome Developers",
+    "url": "https://developer.chrome.com/blog/feed.xml",
+    "mode": "select"
+  },
+  {
+    "name": "The Go Blog",
+    "url": "https://go.dev/blog/feed.atom",
+    "mode": "select"
+  },
+  {
+    "name": "Google Online Security Blog",
+    "url": "https://feeds.feedburner.com/GoogleOnlineSecurityBlog",
+    "mode": "select"
+  },
+  {
+    "name": "Percona",
+    "url": "https://www.percona.com/blog/feed/",
+    "mode": "select"
+  },
+  {
+    "name": "Let's Encrypt",
+    "url": "https://letsencrypt.org/feed.xml",
+    "mode": "select"
+  },
+  {
+    "name": "Chromium Blog",
+    "url": "https://blog.chromium.org/atom.xml",
+    "mode": "select"
+  },
+  {
+    "name": "Cloudflare",
+    "url": "https://blog.cloudflare.com/rss/",
+    "mode": "select"
+  },
+  {
+    "name": "Meta Engineering",
+    "url": "https://engineering.fb.com/feed/",
+    "mode": "select"
+  },
+  {
+    "name": "Fastly",
+    "url": "https://www.fastly.com/blog_rss.xml",
+    "mode": "select"
+  },
+  {
+    "name": "GFW Report",
+    "url": "https://gfw.report/index.xml",
+    "mode": "all"
+  }
+]
+

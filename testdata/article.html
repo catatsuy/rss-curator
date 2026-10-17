@@ -1,0 +1,13 @@
+<!doctype html>
+<html><head><title>{{TITLE}}</title></head><body>
+<nav>購読</nav>
+<article><h1>{{TITLE}}</h1>
+<p>This implementation uses TLS connection pooling and measures latency under concurrent requests, preserving protocol semantics. Connection reuse reduces handshake overhead while keeping certificate verification enabled.</p>
+<p>The benchmark fixes concurrency at 64 and records 12ms of latency. Connections are drained before shutdown, and each request has a deadline. The implementation compares the existing approach with a bounded pool under the same workload.</p>
+<p>The design retains protocol negotiation and cancellation. The tradeoff is memory consumed by idle connections. These measurements describe this workload, and do not imply that every deployment sees the same improvement.</p>
+<h2>Implementation</h2><pre><code>func Serve() {}</code></pre>
+<table><tr><th>Concurrency</th><th>Latency</th></tr><tr><td>64</td><td>12ms</td></tr></table>
+<p><a href="/reference">Reference</a></p>
+<figure><img src="/diagram.png" alt="Connection flow"><figcaption>接続の流れ</figcaption></figure>
+{{EXTRA}}
+</article></body></html>

@@ -1,0 +1,60 @@
+name: RSSの選別とSlack投稿
+on:
+  schedule:
+    - cron: '17 0,6,12,18 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: API・Slack・状態更新を行わず対象を列挙する
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: rss-curator-state
+  cancel-in-progress: false
+jobs:
+  curate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      OPENAI_IDENTITY_PROVIDER_ID: ${{ vars.OPENAI_IDENTITY_PROVIDER_ID }}
+      OPENAI_SERVICE_ACCOUNT_ID: ${{ vars.OPENAI_SERVICE_ACCOUNT_ID }}
+      OPENAI_WIF_AUDIENCE: ${{ vars.OPENAI_WIF_AUDIENCE }}
+      INTEREST_PROMPT: ${{ secrets.INTEREST_PROMPT }}
+      SUMMARY_PROMPT: ${{ secrets.SUMMARY_PROMPT }}
+      INTEREST_PROMPT_FILE: prompts/interest.md
+      SUMMARY_PROMPT_FILE: prompts/summary.md
+      NOTIFY_SLACK_TOKEN: ${{ secrets.NOTIFY_SLACK_TOKEN }}
+      NOTIFY_SLACK_CHANNEL_ID: ${{ secrets.NOTIFY_SLACK_CHANNEL_ID }}
+      INTEREST_MODEL: ${{ vars.INTEREST_MODEL || 'gpt-6-luna' }}
+      SUMMARY_MODEL: ${{ vars.SUMMARY_MODEL || 'gpt-6.1-sol' }}
+      INTEREST_THRESHOLD: ${{ vars.INTEREST_THRESHOLD || '0.8' }}
+      DRY_RUN: ${{ inputs.dry_run || false }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: ビルドとCLIの準備
+        run: |
+          go build -o rss-curator .
+          mkdir -p "$RUNNER_TEMP/notify-slack"
+          curl --fail --location --retry 3 \
+            https://github.com/catatsuy/notify_slack/releases/latest/download/notify_slack-linux-amd64.tar.gz \
+            -o "$RUNNER_TEMP/notify-slack.tar.gz"
+          tar -xzf "$RUNNER_TEMP/notify-slack.tar.gz" -C "$RUNNER_TEMP/notify-slack" notify_slack
+          chmod +x "$RUNNER_TEMP/notify-slack/notify_slack"
+          echo "$RUNNER_TEMP/notify-slack" >> "$GITHUB_PATH"
+      - name: RSSを処理
+        shell: bash
+        run: |
+          if [[ "$DRY_RUN" == true ]]; then
+            scripts/run.sh --dry-run
+          else
+            scripts/run.sh
+          fi

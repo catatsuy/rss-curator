@@ -31,3 +31,12 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# 非公開の生成物とローカル設定
+/rss-curator
+/output/
+/state.json
+/state.json.*
+/.rss-state/
+*.prompt
+.env.*
