@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -17,10 +18,20 @@ import (
 )
 
 type Feed struct {
-	Name string `json:"name"`
-	URL  string `json:"url"`
-	Mode string `json:"mode"`
+	Name       string `json:"name"`
+	URL        string `json:"url"`
+	Mode       string `json:"mode"`
+	PathSuffix string `json:"path_suffix,omitempty"`
 }
+
+func (f Feed) includes(raw string) bool {
+	if f.PathSuffix == "" {
+		return true
+	}
+	u, err := url.Parse(raw)
+	return err == nil && strings.HasSuffix(u.Path, f.PathSuffix)
+}
+
 type Entry struct {
 	ID    string `json:"id"`
 	Path  string `json:"path,omitempty"`
@@ -264,6 +275,9 @@ func run(ctx context.Context, config, statePath, output string, dry bool) error 
 		count := 0
 		var targets []*gofeed.Item
 		for _, item := range feed.Items {
+			if !f.includes(item.Link) {
+				continue
+			}
 			keys := itemKeys(f, item)
 			if len(keys) == 0 {
 				slog.Error("記事のURLとGUIDがありません", "情報源", f.Name)

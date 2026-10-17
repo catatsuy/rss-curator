@@ -35,6 +35,10 @@ func TestAuthErrorDiagnostics(t *testing.T) {
 		{"タイムアウト", context.DeadlineExceeded, "タイムアウト"},
 		{"キャンセル", context.Canceled, "キャンセル"},
 		{"不明", fmt.Errorf("secret"), "通信に失敗"},
+		{"交換HTTP", fmt.Errorf("token exchange failed with status 502"), "トークン交換に失敗しました（HTTP 502）"},
+		{"交換JSON", fmt.Errorf("failed to decode token exchange response"), "トークン交換に失敗"},
+		{"交換トークン欠落", fmt.Errorf("token exchange response missing 'access_token' field"), "access_token"},
+		{"交換HTTPの機密情報", fmt.Errorf("token exchange failed with status 401 secret"), "エラー型:"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got := apiError("Decisions API", fmt.Errorf("wrapped: %w", tc.err)).Error()

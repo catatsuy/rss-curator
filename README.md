@@ -138,7 +138,7 @@ Actionsを有効にし、`GITHUB_TOKEN`による`rss-state`へのpushを許可�
 }
 ```
 
-新しく追加したフィードも、初回は最新2記事から始めます。`digest`はFeisty Duck用です。GFW Reportは`https://gfw.report/index.xml`を`all`モードで登録し、興味判定を省略して処理します。
+新しく追加したフィードも、初回は最新2記事から始めます。`digest`はFeisty Duck用です。GFW Reportは`https://gfw.report/index.xml`を`all`モードで登録し、興味判定を省略して処理します。`path_suffix: "/en/"`で英語版の記事だけを対象にし、中国語版との重複を避けます。
 
 ### 興味判定と要約
 

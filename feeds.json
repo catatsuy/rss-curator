@@ -77,6 +77,7 @@
   {
     "name": "GFW Report",
     "url": "https://gfw.report/index.xml",
+    "path_suffix": "/en/",
     "mode": "all"
   }
 ]
