@@ -22,7 +22,12 @@ type githubTokenProvider struct {
 }
 
 func (*githubTokenProvider) TokenType() auth.SubjectTokenType { return auth.SubjectTokenTypeJWT }
-func (p *githubTokenProvider) GetToken(ctx context.Context, _ auth.HTTPDoer) (string, error) {
+func (p *githubTokenProvider) GetToken(ctx context.Context, _ auth.HTTPDoer) (token string, err error) {
+	defer func() {
+		if err != nil {
+			err = &auth.SubjectTokenProviderError{Provider: "GitHub", Cause: err}
+		}
+	}()
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	u, e := url.Parse(p.requestURL)

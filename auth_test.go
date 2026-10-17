@@ -22,6 +22,28 @@ func clearAuthEnv(t *testing.T) {
 		t.Setenv(key, "")
 	}
 }
+
+func TestAuthErrorDiagnostics(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		err  error
+		want string
+	}{
+		{"交換", &auth.OAuthError{StatusCode: 401, ErrorCode: "invalid_grant", ErrorDescription: "secret"}, "HTTP 401、OAuth: invalid_grant"},
+		{"未知のコード", &auth.OAuthError{StatusCode: 403, ErrorCode: "secret", ErrorDescription: "secret"}, "HTTP 403、OAuth: unknown"},
+		{"OIDC", &auth.SubjectTokenProviderError{Provider: "secret", Message: "secret", Cause: fmt.Errorf("secret")}, "GitHub OIDCトークン取得"},
+		{"タイムアウト", context.DeadlineExceeded, "タイムアウト"},
+		{"キャンセル", context.Canceled, "キャンセル"},
+		{"不明", fmt.Errorf("secret"), "通信に失敗"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := apiError("Decisions API", fmt.Errorf("wrapped: %w", tc.err)).Error()
+			if !strings.Contains(got, tc.want) || strings.Contains(got, "secret") {
+				t.Fatalf("安全な診断情報がありません: %s", got)
+			}
+		})
+	}
+}
 func TestAuthConfiguration(t *testing.T) {
 	clearAuthEnv(t)
 	if _, e := openAIAuthOption(); e == nil {
