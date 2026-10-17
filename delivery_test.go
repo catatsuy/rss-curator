@@ -67,3 +67,26 @@ func TestImmediateDelivery(t *testing.T) {
 		})
 	}
 }
+
+func TestDeliveryStreamDiagnostics(t *testing.T) {
+	for _, tc := range []struct{ reply, want string }{
+		{"failed\n", "Slack投稿に失敗"},
+		{"", "通信が切断"},
+		{"PRIVATE_REPLY\n", "想定外の応答"},
+	} {
+		var out strings.Builder
+		post, _ := deliveryStream(strings.NewReader(tc.reply), &out)
+		err := post("test-id", "")
+		if err == nil || !strings.Contains(err.Error(), tc.want) || strings.Contains(err.Error(), "PRIVATE_REPLY") {
+			t.Fatalf("投稿待ちの診断が不適切: %v", err)
+		}
+	}
+	var out strings.Builder
+	post, checkpoint := deliveryStream(strings.NewReader("posted\nfailed\n"), &out)
+	if err := post("test-id", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := checkpoint(); err == nil || !strings.Contains(err.Error(), "状態の永続化に失敗") {
+		t.Fatalf("保存待ちの診断が不適切: %v", err)
+	}
+}

@@ -87,7 +87,14 @@ while IFS= read -r event <&3; do
       if notify_slack -c /dev/null -snippet -snippet-type markdown -filename "$id.md" <"$output/pending/$id.md" >"$work/slack.log" 2>&1; then
         echo posted >&4
       else
-        echo "Slackへの投稿に失敗しました: $id" >&2
+        slack_status=$?
+        echo "Slackへの投稿に失敗しました: $id (notify_slack exit=$slack_status)" >&2
+        # 出力全文にはトークンや要約が含まれ得るため、既知のエラーコードだけを出す。
+        while IFS= read -r line || [[ -n "$line" ]]; do
+          if [[ "$line" =~ (^|[^a-z_])(missing_scope|invalid_auth|not_authed|token_revoked|token_expired|account_inactive|not_in_channel|channel_not_found|no_permission|is_archived|invalid_arguments|invalid_snippet_type|file_uploads_disabled|file_upload_size_restricted|ratelimited|rate_limited|internal_error|fatal_error|request_timeout|service_unavailable|method_deprecated)([^a-z_]|$) ]]; then
+            echo "Slack error: ${BASH_REMATCH[2]}" >&2
+          fi
+        done <"$work/slack.log"
         echo failed >&4
         wait "$worker" || true
         worker=""
@@ -95,7 +102,13 @@ while IFS= read -r event <&3; do
       fi
       ;;
     saved)
-      checkpoint
+      if ! checkpoint; then
+        echo '投稿成功後の状態の永続化に失敗しました' >&2
+        echo failed >&4
+        wait "$worker" || true
+        worker=""
+        exit 1
+      fi
       sleep 1
       echo continue >&4
       ;;

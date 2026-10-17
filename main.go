@@ -58,11 +58,21 @@ func main() {
 func deliveryStream(input io.Reader, output io.Writer) (func(string, string) error, func() error) {
 	replies := bufio.NewScanner(input)
 	exchange := func(event, expected string) error {
+		phase := "Slack投稿"
+		if expected == "continue" {
+			phase = "状態の永続化"
+		}
 		if _, err := fmt.Fprintln(output, event); err != nil {
 			return fmt.Errorf("シェルへ通知できません")
 		}
-		if !replies.Scan() || replies.Text() != expected {
-			return fmt.Errorf("シェルでの投稿または状態保存が完了しませんでした")
+		if !replies.Scan() {
+			return fmt.Errorf("%sの完了待ちでシェルとの通信が切断されました", phase)
+		}
+		if replies.Text() == "failed" {
+			return fmt.Errorf("%sに失敗しました。シェル側のエラーログを確認してください", phase)
+		}
+		if replies.Text() != expected {
+			return fmt.Errorf("%sの完了待ちでシェルから想定外の応答を受信しました", phase)
 		}
 		return nil
 	}

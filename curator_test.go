@@ -458,12 +458,18 @@ func TestShellDelivery(t *testing.T) {
 			if e := os.WriteFile(filepath.Join(mockDir, "notify_slack"), []byte("#!/usr/bin/env bash\ncat > /dev/null\necho post >> \"$POST_LOG\"\nexit "+exitCode+"\n"), 0700); e != nil {
 				t.Fatal(e)
 			}
+			if fail {
+				mustWrite(t, filepath.Join(mockDir, "notify_slack"), "#!/usr/bin/env bash\ncat > /dev/null\necho post >> \"$POST_LOG\"\necho 'missing_scope PRIVATE_SLACK_LOG' >&2\nexit 1\n")
+			}
 			cmd := exec.Command("bash", "scripts/run.sh")
 			cmd.Dir = repo
 			cmd.Env = append(os.Environ(), "PATH="+mockDir+":"+os.Getenv("PATH"), "RSS_CURATOR_BIN="+binary, "POST_LOG="+filepath.Join(root, "posts"), "OPENAI_API_KEY=test", "INTEREST_PROMPT=非公開判定", "SUMMARY_PROMPT=非公開要約", "NOTIFY_SLACK_TOKEN=非公開token", "NOTIFY_SLACK_CHANNEL_ID=Ctest")
 			b, e := cmd.CombinedOutput()
 			if (e != nil) != fail {
 				t.Fatalf("投稿結果の終了コード: %s %v", b, e)
+			}
+			if fail && (!strings.Contains(string(b), "Slack error: missing_scope") || !strings.Contains(string(b), "notify_slack exit=1") || strings.Contains(string(b), "PRIVATE_SLACK_LOG")) {
+				t.Fatalf("Slack失敗の診断が不適切です: %s", b)
 			}
 			posts, err := os.ReadFile(filepath.Join(root, "posts"))
 			wantPosts := 2
