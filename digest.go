@@ -40,6 +40,11 @@ func (r *runner) digestNeedsFetch(marker string, keys []string) bool {
 		maxFailures = defaultFetchFailures
 	}
 	for _, id := range d.Items {
+		if r.state.Fetch[id].FailureNoticePending {
+			pending = true
+			eligible = eligible || r.post != nil
+			continue
+		}
 		if r.state.done([]string{id}) {
 			continue
 		}
@@ -49,6 +54,9 @@ func (r *runner) digestNeedsFetch(marker string, keys []string) bool {
 			r.state.Fetch[id] = f
 		}
 		if f.Stopped || f.Failures >= maxFailures {
+			f.FailureNoticePending = true
+			pending = true
+			eligible = eligible || r.post != nil
 			f.Stopped = true
 			if f.StopReason == "" {
 				f.StopReason = "fetch_failure_limit"

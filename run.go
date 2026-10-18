@@ -199,6 +199,9 @@ func (r *runner) process(ctx context.Context, source, mode, raw, title, mime, in
 		r.claimed[id] = true
 		return r.emit(Article{Title: title, URL: u}, source, id, "")
 	}
+	if u, err := normalize(raw); err == nil && r.state.Fetch[hash(u)].FailureNoticePending {
+		return r.notifyFetchFailure(u)
+	}
 	// digestは紹介先の再試行が必要な場合だけ、投稿済み本体を再取得する。
 	if mode != "digest" && r.state.done(keys) {
 		return nil

@@ -25,17 +25,18 @@ const (
 
 // FetchState はURLや認証情報を保存せず、既存の記事ハッシュに取得状態を対応させる。
 type FetchState struct {
-	Method            string    `json:"method"`
-	LastFailure       string    `json:"last_failure,omitempty"`
-	Attempts          int       `json:"attempts"`
-	Failures          int       `json:"failures,omitempty"`
-	CrawlbaseAttempts int       `json:"crawlbase_attempts,omitempty"`
-	CrawlbaseFailures int       `json:"crawlbase_failures,omitempty"`
-	LastAttempt       time.Time `json:"last_attempt,omitzero"`
-	NextAttempt       time.Time `json:"next_attempt,omitzero"`
-	LastSeen          time.Time `json:"last_seen"`
-	Stopped           bool      `json:"stopped,omitempty"`
-	StopReason        string    `json:"stop_reason,omitempty"`
+	Method               string    `json:"method"`
+	LastFailure          string    `json:"last_failure,omitempty"`
+	Attempts             int       `json:"attempts"`
+	Failures             int       `json:"failures,omitempty"`
+	CrawlbaseAttempts    int       `json:"crawlbase_attempts,omitempty"`
+	CrawlbaseFailures    int       `json:"crawlbase_failures,omitempty"`
+	LastAttempt          time.Time `json:"last_attempt,omitzero"`
+	NextAttempt          time.Time `json:"next_attempt,omitzero"`
+	LastSeen             time.Time `json:"last_seen"`
+	FailureNoticePending bool      `json:"failure_notice_pending,omitempty"`
+	Stopped              bool      `json:"stopped,omitempty"`
+	StopReason           string    `json:"stop_reason,omitempty"`
 }
 
 func fetchFailureLimit() (int, error) {
@@ -315,6 +316,10 @@ func (r *runner) fetchArticle(ctx context.Context, raw, title, mime string) (Art
 		return Article{}, errFetchDeferred
 	}
 	if f.Stopped {
+		if e := r.notifyFetchFailure(u); e != nil {
+			return Article{}, e
+		}
+		f = r.state.Fetch[id]
 		return deferFetch("stopped")
 	}
 	reason := excludedArticleURL(u)
@@ -325,6 +330,7 @@ func (r *runner) fetchArticle(ctx context.Context, raw, title, mime string) (Art
 			outcome = "stopped"
 		}
 		result.Reason = reason
+		f.FailureNoticePending = reason == "fetch_failure_limit"
 		f.Stopped = true
 		f.StopReason = reason
 		f.NextAttempt = time.Time{}
@@ -332,6 +338,9 @@ func (r *runner) fetchArticle(ctx context.Context, raw, title, mime string) (Art
 		r.state.Processed[id] = now
 		if e := r.save(); e != nil {
 			return Article{}, fmt.Errorf("%w: %v", errDelivery, e)
+		}
+		if e := r.notifyFetchFailure(u); e != nil {
+			return Article{}, e
 		}
 		return Article{}, errFetchDeferred
 	}
@@ -444,10 +453,19 @@ func (r *runner) fetchArticle(ctx context.Context, raw, title, mime string) (Art
 	} else {
 		outcome = "retry"
 	}
+	if err != nil && f.Stopped {
+		f.FailureNoticePending = true
+		if f.StopReason == "" {
+			f.StopReason = f.LastFailure
+		}
+	}
 	r.state.Fetch[id] = f
 	// API・Slackの処理より前に取得状態をローカル保存する。シェルが従来どおりpushする。
 	if saveErr := r.save(); saveErr != nil {
 		return Article{}, fmt.Errorf("%w: %v", errDelivery, saveErr)
+	}
+	if noticeErr := r.notifyFetchFailure(u); noticeErr != nil {
+		return Article{}, noticeErr
 	}
 	return a, err
 }

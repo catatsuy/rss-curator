@@ -31,7 +31,7 @@ func TestCompletedDigestNeverRefetches(t *testing.T) {
 	if e := r.process(context.Background(), "newsletter", "digest", parent, "本体", "", "", keys); e != nil {
 		t.Fatal(e)
 	}
-	if parentCalls != 2 || childCalls != 2 || posts != 1 || *ss != 1 || *ds != 0 {
+	if parentCalls != 2 || childCalls != 2 || posts != 2 || *ss != 1 || *ds != 0 {
 		t.Fatal(parentCalls, childCalls, posts, *ss, *ds)
 	}
 	if _, complete := r.state.Processed[marker]; !complete {
@@ -46,7 +46,7 @@ func TestCompletedDigestNeverRefetches(t *testing.T) {
 			t.Fatal(e)
 		}
 	}
-	if parentCalls != 2 || childCalls != 2 || posts != 1 || *ss != 1 {
+	if parentCalls != 2 || childCalls != 2 || posts != 2 || *ss != 1 {
 		t.Fatal("完了済み本体への無駄なリクエスト", parentCalls, childCalls, posts, *ss)
 	}
 }
@@ -95,12 +95,12 @@ func TestDigestSkipsWhenChildrenCannotRetry(t *testing.T) {
 					t.Fatal("状態にURLや紹介文を保存しました")
 				}
 			}
-			complete := reason == "failure_limit" || reason == "completed"
+			complete := reason == "completed"
 			_, got := r.state.Processed[marker]
 			if got != complete {
 				t.Fatal("完了判定が不正", reason, got)
 			}
-			if !complete && r.state.done([]string{childID}) {
+			if !complete && reason != "failure_limit" && r.state.done([]string{childID}) {
 				t.Fatal("待機中の紹介先を失いました")
 			}
 		})
