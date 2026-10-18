@@ -36,6 +36,13 @@ func loadState(path string) (*State, error) {
 	if s.Processed == nil || s.Initialized == nil || s.Aliases == nil {
 		return nil, fmt.Errorf("状態の必須項目がありません")
 	}
+	// 旧形式で取得失敗中だった記事は、それまでの試行回数を引き継ぐ。
+	for id, f := range s.Fetch {
+		if f.Failures == 0 && f.LastFailure != "" {
+			f.Failures = f.Attempts
+			s.Fetch[id] = f
+		}
+	}
 	return s, nil
 }
 func writeJSON(path string, v any) error {

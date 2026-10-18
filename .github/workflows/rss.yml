@@ -23,6 +23,7 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       CRAWLBASE_TOKEN: ${{ secrets.CRAWLBASE_TOKEN }}
       CRAWLBASE_MAX_REQUESTS: ${{ vars.CRAWLBASE_MAX_REQUESTS || '5' }}
+      ARTICLE_MAX_FETCH_FAILURES: ${{ vars.ARTICLE_MAX_FETCH_FAILURES || '3' }}
       INTEREST_PROMPT: ${{ secrets.INTEREST_PROMPT }}
       SUMMARY_PROMPT: ${{ secrets.SUMMARY_PROMPT }}
       INTEREST_PROMPT_FILE: prompts/interest.md

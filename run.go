@@ -57,6 +57,7 @@ type runner struct {
 	crawlbase         *crawlbaseClient
 	fetchAttempted    map[string]bool
 	now               func() time.Time
+	maxFetchFailures  int
 }
 
 var errDelivery = errors.New("投稿処理を継続できません")
@@ -300,6 +301,10 @@ func runWithDelivery(ctx context.Context, config, statePath, output string, dry 
 	}
 	r := &runner{client: &http.Client{Timeout: 90 * time.Second}, ai: ai, state: s, statePath: statePath, output: output, dry: dry, manifest: Manifest{DryRun: dry, Articles: []Entry{}}, claimed: map[string]bool{}}
 	if !dry {
+		r.maxFetchFailures, e = fetchFailureLimit()
+		if e != nil {
+			return e
+		}
 		r.crawlbase, e = newCrawlbaseClient(r.client)
 		if e != nil {
 			return e

@@ -20,6 +20,7 @@ const (
 	maxCrawlbaseFailures = 3
 	fetchRetention       = 30 * 24 * time.Hour
 	rateLimitWait        = time.Hour
+	defaultFetchFailures = 3
 )
 
 // FetchState はURLや認証情報を保存せず、既存の記事ハッシュに取得状態を対応させる。
@@ -27,12 +28,53 @@ type FetchState struct {
 	Method            string    `json:"method"`
 	LastFailure       string    `json:"last_failure,omitempty"`
 	Attempts          int       `json:"attempts"`
+	Failures          int       `json:"failures,omitempty"`
 	CrawlbaseAttempts int       `json:"crawlbase_attempts,omitempty"`
 	CrawlbaseFailures int       `json:"crawlbase_failures,omitempty"`
 	LastAttempt       time.Time `json:"last_attempt,omitzero"`
 	NextAttempt       time.Time `json:"next_attempt,omitzero"`
 	LastSeen          time.Time `json:"last_seen"`
 	Stopped           bool      `json:"stopped,omitempty"`
+	StopReason        string    `json:"stop_reason,omitempty"`
+}
+
+func fetchFailureLimit() (int, error) {
+	limit, err := strconv.Atoi(env("ARTICLE_MAX_FETCH_FAILURES", "3"))
+	if err != nil || limit < 1 {
+		return 0, fmt.Errorf("ARTICLE_MAX_FETCH_FAILURESは1以上の整数にしてください")
+	}
+	return limit, nil
+}
+
+// 本文取得に適さない動画・求人・購読等への通信を、代替取得も含めて避ける。
+func excludedArticleURL(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return ""
+	}
+	host := strings.ToLower(strings.TrimSuffix(u.Hostname(), "."))
+	for _, domain := range []string{"youtube.com", "youtu.be", "youtube-nocookie.com"} {
+		if host == domain || strings.HasSuffix(host, "."+domain) {
+			return "excluded_video"
+		}
+	}
+	for _, domain := range []string{"workable.com", "greenhouse.io", "lever.co"} {
+		if host == domain || strings.HasSuffix(host, "."+domain) {
+			return "excluded_job"
+		}
+	}
+	if strings.HasPrefix(host, "jobs.") || strings.HasPrefix(host, "careers.") {
+		return "excluded_job"
+	}
+	for _, part := range strings.Split(strings.ToLower(u.Path), "/") {
+		switch part {
+		case "jobs", "careers":
+			return "excluded_job"
+		case "donate", "donation", "donations", "subscribe", "unsubscribe":
+			return "excluded_subscription"
+		}
+	}
+	return ""
 }
 
 type articleHTTPError struct {
@@ -250,13 +292,17 @@ func (r *runner) fetchArticle(ctx context.Context, raw, title, mime string) (Art
 	f.LastSeen = now
 	result := crawlResult{}
 	method := f.Method
+	maxFailures := r.maxFetchFailures
+	if maxFailures == 0 {
+		maxFailures = defaultFetchFailures
+	}
 	outcome := "deferred"
 	defer func() {
 		calls := 0
 		if r.crawlbase != nil {
 			calls = r.crawlbase.used
 		}
-		slog.Info("記事の取得", "url", safeArticleURL(u), "method", method, "result", outcome, "http_status", result.HTTPStatus, "cb_status", result.CBStatus, "original_status", result.OriginalStatus, "reason", result.Reason, "next_method", f.Method, "retry_scheduled", outcome != "success" && !f.Stopped, "retry_at", f.NextAttempt, "crawlbase_requests", calls)
+		slog.Info("記事の取得", "url", safeArticleURL(u), "method", method, "result", outcome, "http_status", result.HTTPStatus, "cb_status", result.CBStatus, "original_status", result.OriginalStatus, "reason", result.Reason, "stop_reason", f.StopReason, "attempts", f.Attempts, "failures", f.Failures, "max_failures", maxFailures, "next_method", f.Method, "retry_scheduled", outcome != "success" && !f.Stopped, "retry_at", f.NextAttempt, "crawlbase_requests", calls)
 	}()
 	deferFetch := func(reason string) (Article, error) {
 		result.Reason = reason
@@ -265,6 +311,24 @@ func (r *runner) fetchArticle(ctx context.Context, raw, title, mime string) (Art
 	}
 	if f.Stopped {
 		return deferFetch("stopped")
+	}
+	reason := excludedArticleURL(u)
+	if reason != "" || f.Failures >= maxFailures {
+		outcome = "skipped"
+		if reason == "" {
+			reason = "fetch_failure_limit"
+			outcome = "stopped"
+		}
+		result.Reason = reason
+		f.Stopped = true
+		f.StopReason = reason
+		f.NextAttempt = time.Time{}
+		r.state.Fetch[id] = f
+		r.state.Processed[id] = now
+		if e := r.save(); e != nil {
+			return Article{}, fmt.Errorf("%w: %v", errDelivery, e)
+		}
+		return Article{}, errFetchDeferred
 	}
 	if r.fetchAttempted[id] {
 		return deferFetch("already_attempted")
@@ -356,6 +420,17 @@ func (r *runner) fetchArticle(ctx context.Context, raw, title, mime string) (Art
 			f.LastFailure = ""
 			result.Reason = "success"
 		}
+	}
+	if err != nil {
+		f.Failures++
+		if f.Failures >= maxFailures && !f.Stopped {
+			f.Stopped = true
+			f.StopReason = "fetch_failure_limit"
+			f.NextAttempt = time.Time{}
+			r.state.Processed[id] = now
+		}
+	} else {
+		f.Failures = 0
 	}
 	if err == nil {
 		outcome = "success"
