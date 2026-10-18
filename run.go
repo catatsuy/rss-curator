@@ -199,13 +199,17 @@ func (r *runner) process(ctx context.Context, source, mode, raw, title, mime, in
 		r.claimed[id] = true
 		return r.emit(Article{Title: title, URL: u}, source, id, "")
 	}
-	// digestは投稿済み本体からも紹介先の未完了記事を再発見する。
+	// digestは紹介先の再試行が必要な場合だけ、投稿済み本体を再取得する。
 	if mode != "digest" && r.state.done(keys) {
 		return nil
 	}
+	marker := ""
 	if mode == "digest" {
-		marker := hash("digest\n" + keys[0])
+		marker = hash("digest\n" + keys[0])
 		if r.state.done(keys) && r.state.Aliases[marker] == "" {
+			return nil
+		}
+		if !r.digestNeedsFetch(marker, keys) {
 			return nil
 		}
 		r.state.Aliases[marker] = keys[0]
@@ -223,6 +227,17 @@ func (r *runner) process(ctx context.Context, source, mode, raw, title, mime, in
 		r.state.Aliases[k] = id
 	}
 	already := r.state.done(keys) || r.claimed[id]
+	var links []Link
+	if mode == "digest" {
+		if !a.PDF && !a.Paper {
+			links = digestLinks(a)
+		}
+		r.rememberDigest(marker, links)
+		// 投稿成功時のcheckpointより前に紹介先一覧を保存する。
+		if err := r.save(); err != nil {
+			return fmt.Errorf("%w: %v", errDelivery, err)
+		}
+	}
 	articleErr := func() error {
 		if already {
 			return nil
@@ -254,8 +269,8 @@ func (r *runner) process(ctx context.Context, source, mode, raw, title, mime, in
 	if errors.Is(articleErr, errDelivery) {
 		return articleErr
 	}
-	if mode == "digest" && !a.PDF && !a.Paper {
-		for _, link := range digestLinks(a) {
+	if mode == "digest" {
+		for _, link := range links {
 			if e = r.process(ctx, source+"の紹介", "select", link.URL, link.Title, "", link.Context, []string{hash(link.URL)}); e != nil {
 				if errors.Is(e, errDelivery) {
 					return e
@@ -266,6 +281,7 @@ func (r *runner) process(ctx context.Context, source, mode, raw, title, mime, in
 				return err
 			}
 		}
+		r.digestNeedsFetch(marker, keys)
 	}
 	return articleErr
 }

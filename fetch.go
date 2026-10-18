@@ -236,6 +236,11 @@ func (s *State) pruneFetch(now time.Time) {
 	if !now.Before(s.CrawlbaseRetryAfter) {
 		s.CrawlbaseRetryAfter = time.Time{}
 	}
+	for marker, d := range s.Digests {
+		if now.Sub(d.LastSeen) > fetchRetention {
+			delete(s.Digests, marker)
+		}
+	}
 }
 
 // Retry-Afterがない/不正/短すぎる場合も、429の後は最低1時間待つ。

@@ -14,10 +14,11 @@ type State struct {
 	Processed   map[string]time.Time `json:"processed"`
 	Initialized map[string]bool      `json:"initialized"`
 	// 発見済み識別子と記事識別子の対応。URLや採否は保存しない。
-	Aliases             map[string]string     `json:"aliases"`
-	Fetch               map[string]FetchState `json:"fetch,omitempty"`
-	HostRetryAfter      map[string]time.Time  `json:"host_retry_after,omitempty"`
-	CrawlbaseRetryAfter time.Time             `json:"crawlbase_retry_after,omitzero"`
+	Aliases             map[string]string      `json:"aliases"`
+	Fetch               map[string]FetchState  `json:"fetch,omitempty"`
+	HostRetryAfter      map[string]time.Time   `json:"host_retry_after,omitempty"`
+	CrawlbaseRetryAfter time.Time              `json:"crawlbase_retry_after,omitzero"`
+	Digests             map[string]DigestState `json:"digests,omitempty"`
 }
 
 func hash(s string) string { v := sha256.Sum256([]byte(s)); return hex.EncodeToString(v[:]) }
