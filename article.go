@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"strings"
 
@@ -19,6 +20,8 @@ type Article struct {
 	httpStatus                 int
 }
 type Link struct{ Title, URL, Context string }
+
+const defaultArticleUserAgent = "rss-curator (+https://github.com/catatsuy/rss-curator)"
 
 func normalize(raw string) (string, error) {
 	u, e := url.Parse(raw)
@@ -137,7 +140,12 @@ func fetchArticle(ctx context.Context, c *http.Client, raw, title, mime string) 
 		a.PDF = true
 		return a, nil
 	}
+	userAgent := strings.TrimSpace(os.Getenv("ARTICLE_USER_AGENT"))
+	if userAgent == "" {
+		userAgent = defaultArticleUserAgent
+	}
 	req, _ := http.NewRequestWithContext(ctx, http.MethodHead, u, nil)
+	req.Header.Set("User-Agent", userAgent)
 	r, e := c.Do(req)
 	if e == nil {
 		r.Body.Close()
@@ -152,6 +160,7 @@ func fetchArticle(ctx context.Context, c *http.Client, raw, title, mime string) 
 		}
 	}
 	req, _ = http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	req.Header.Set("User-Agent", userAgent)
 	r, e = c.Do(req)
 	if e != nil {
 		return a, fmt.Errorf("記事の取得に失敗しました")

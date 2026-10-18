@@ -90,7 +90,7 @@ Slack AppのBot Tokenに`files:write`を付与し、アプリをワークスペ�
 
 Actionsを有効にし、`GITHUB_TOKEN`による`rss-state`へのpushを許可してください。ワークフローには`contents: write`を設定しています。PATは不要です。ブランチ保護規則でpushが拒否される場合は規則を調整してください。
 
-標準Ubuntu runnerで1日4回、日本時間09:17 / 15:17 / 21:17 / 翌03:17に実行します。同じワークフローは直列で実行し、ジョブのタイムアウトは90分です。PRからSecretsにアクセスするワークフローはありません。
+標準Ubuntu runnerで1日4回、日本時間07:17 / 10:17 / 13:17 / 19:17に実行します。朝の2回で米国東海岸・西海岸の前日の更新を拾い、13時と19時に遅い更新や他地域の記事を確認する想定です。日本時間を固定し、米国の夏時間・冬時間の両方を考慮しています。RSSは毎回確認しますが、処理対象がなければ記事本文の取得やOpenAIへのリクエストは行いません。同じワークフローは直列で実行し、ジョブのタイムアウトは90分です。PRからSecretsにアクセスするワークフローはありません。
 
 手動実行はActionsタブの「RSSの選別とSlack投稿」から **Run workflow** を選びます。`dry_run`を有効にすると対象候補の列挙だけを行います。定期実行はGitHub側の都合で遅延・停止する場合があるため、必要に応じて実行履歴を確認してください。
 
@@ -138,6 +138,9 @@ Actionsでは同名のRepository variablesでモデルと閾値を変更でき�
 | `CRAWLBASE_TOKEN` | 未設定 | **Normal Token**。Actionsでは同名のRepository Secretに登録 |
 | `CRAWLBASE_MAX_REQUESTS` | `5` | 1実行のCrawlbaseリクエスト上限（失敗も含む）。`0`で停止。Actionsでは同名のRepository variableで変更 |
 | `ARTICLE_MAX_FETCH_FAILURES` | `3` | 1記事の連続取得失敗の上限。通常HTTP・Crawlbaseを合算し、実行間で維持。1以上の整数。Actionsでは同名のRepository variableで変更 |
+| `ARTICLE_USER_AGENT` | `rss-curator (+https://github.com/catatsuy/rss-curator)` | 通常HTTPの記事取得（HEAD/GET）で送るUA。未設定・空文字・空白の場合も既定値を送る。Actionsでは同名のRepository variableで変更 |
+
+サイトによってはcrawler風のUAを拒否するため、記事取得のUAを指定できます。ブラウザ固有のヘッダー追加やサイトごとの例外は設けていません。RSS・OpenAI・Crawlbase APIのUAは変更しません。UAを変更しても、既に停止・処理済みになった記事を自動的に再試行することはありません。
 
 YouTube（短縮URL・サブドメインを含む）、求人サイト/求人・採用ページ、寄付・購読ページは取得前に除外します。これらには通常HTTP・Crawlbase・OpenAIのリクエストを送りません。Crawlbaseへの切り替え予定だったURLにも適用します。
 
