@@ -14,12 +14,15 @@ type State struct {
 	Processed   map[string]time.Time `json:"processed"`
 	Initialized map[string]bool      `json:"initialized"`
 	// 発見済み識別子と記事識別子の対応。URLや採否は保存しない。
-	Aliases map[string]string `json:"aliases"`
+	Aliases             map[string]string     `json:"aliases"`
+	Fetch               map[string]FetchState `json:"fetch,omitempty"`
+	HostRetryAfter      map[string]time.Time  `json:"host_retry_after,omitempty"`
+	CrawlbaseRetryAfter time.Time             `json:"crawlbase_retry_after,omitzero"`
 }
 
 func hash(s string) string { v := sha256.Sum256([]byte(s)); return hex.EncodeToString(v[:]) }
 func loadState(path string) (*State, error) {
-	s := &State{map[string]time.Time{}, map[string]bool{}, map[string]string{}}
+	s := &State{Processed: map[string]time.Time{}, Initialized: map[string]bool{}, Aliases: map[string]string{}, Fetch: map[string]FetchState{}, HostRetryAfter: map[string]time.Time{}}
 	b, e := os.ReadFile(path)
 	if os.IsNotExist(e) {
 		return s, nil

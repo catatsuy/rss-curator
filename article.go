@@ -16,6 +16,7 @@ import (
 type Article struct {
 	Title, URL, Markdown, HTML string
 	PDF, Paper                 bool
+	httpStatus                 int
 }
 type Link struct{ Title, URL, Context string }
 
@@ -140,9 +141,13 @@ func fetchArticle(ctx context.Context, c *http.Client, raw, title, mime string) 
 	r, e := c.Do(req)
 	if e == nil {
 		r.Body.Close()
+		if r.StatusCode == http.StatusTooManyRequests {
+			return a, newArticleHTTPError(r)
+		}
 		if r.StatusCode >= 200 && r.StatusCode < 300 && isPDF(r.Request.URL.String(), r.Header.Get("Content-Type")) {
 			a.URL, _ = normalize(r.Request.URL.String())
 			a.PDF = true
+			a.httpStatus = r.StatusCode
 			return a, nil
 		}
 	}
@@ -151,9 +156,15 @@ func fetchArticle(ctx context.Context, c *http.Client, raw, title, mime string) 
 	if e != nil {
 		return a, fmt.Errorf("記事の取得に失敗しました")
 	}
+	return readArticleResponse(a, r)
+}
+
+// 通常HTTPと代替取得のレスポンスを、同じ本文抽出処理へ渡す。
+func readArticleResponse(a Article, r *http.Response) (Article, error) {
 	defer r.Body.Close()
+	a.httpStatus = r.StatusCode
 	if r.StatusCode < 200 || r.StatusCode >= 300 {
-		return a, fmt.Errorf("記事のHTTPステータス: %d", r.StatusCode)
+		return a, newArticleHTTPError(r)
 	}
 	a.URL, _ = normalize(r.Request.URL.String())
 	if isPDF(a.URL, r.Header.Get("Content-Type")) {

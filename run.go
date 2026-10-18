@@ -54,6 +54,9 @@ type runner struct {
 	claimed           map[string]bool
 	post              func(string, string) error
 	checkpoint        func() error
+	crawlbase         *crawlbaseClient
+	fetchAttempted    map[string]bool
+	now               func() time.Time
 }
 
 var errDelivery = errors.New("投稿処理を継続できません")
@@ -144,6 +147,7 @@ func (r *runner) save() error {
 	if r.dry {
 		return nil
 	}
+	r.state.pruneFetch(r.fetchTime())
 	if e := writeJSON(r.statePath, r.state); e != nil {
 		return fmt.Errorf("状態の保存に失敗しました: %w", e)
 	}
@@ -205,7 +209,10 @@ func (r *runner) process(ctx context.Context, source, mode, raw, title, mime, in
 		}
 		r.state.Aliases[marker] = keys[0]
 	}
-	a, e := fetchArticle(ctx, r.client, raw, title, mime)
+	a, e := r.fetchArticle(ctx, raw, title, mime)
+	if errors.Is(e, errFetchDeferred) {
+		return nil
+	}
 	if e != nil {
 		return e
 	}
@@ -293,6 +300,11 @@ func runWithDelivery(ctx context.Context, config, statePath, output string, dry 
 	}
 	r := &runner{client: &http.Client{Timeout: 90 * time.Second}, ai: ai, state: s, statePath: statePath, output: output, dry: dry, manifest: Manifest{DryRun: dry, Articles: []Entry{}}, claimed: map[string]bool{}}
 	if !dry {
+		r.crawlbase, e = newCrawlbaseClient(r.client)
+		if e != nil {
+			return e
+		}
+		s.pruneFetch(r.fetchTime())
 		r.post = post
 		r.checkpoint = checkpoint
 	}
