@@ -1419,5 +1419,147 @@
     "fa4fb318422ad7c616fe0be15143b2bc338feed8a38b83b7fff3ba5d25437937": "fa4fb318422ad7c616fe0be15143b2bc338feed8a38b83b7fff3ba5d25437937",
     "fac5a01055fd130425aa64526bf2d6cd0a0c754d23b2b8e64644650202a89fed": "fac5a01055fd130425aa64526bf2d6cd0a0c754d23b2b8e64644650202a89fed",
     "ff1cec58dda621fb1be13f648eb977481c5250c3ae2e839f87a3865a2fe44225": "ff1cec58dda621fb1be13f648eb977481c5250c3ae2e839f87a3865a2fe44225"
+  },
+  "fetch": {
+    "16488328fe06278c9a2837872a8c50020ecb86d95d0f2fd799fcd5daca0cff73": {
+      "method": "crawlbase",
+      "last_failure": "http_403",
+      "attempts": 1,
+      "last_attempt": "2026-10-18T01:59:28.209712615Z",
+      "last_seen": "2026-10-18T01:59:28.209712615Z"
+    },
+    "1df4a10464f8c75440dd2b67d5a1c6557ff565f754ab59d4018f4ad5ce030fae": {
+      "method": "crawlbase",
+      "last_failure": "http_403",
+      "attempts": 1,
+      "last_attempt": "2026-10-18T01:59:23.743228221Z",
+      "last_seen": "2026-10-18T01:59:23.743228221Z"
+    },
+    "231a1fd23df14c4776b7428c6deff8236e393b386fd9e33ff59b63e59ead54d9": {
+      "method": "http",
+      "last_failure": "extraction_failed",
+      "attempts": 1,
+      "last_attempt": "2026-10-18T01:59:22.444711819Z",
+      "last_seen": "2026-10-18T01:59:22.444711819Z"
+    },
+    "24255a2f0747003fab764e5bcb0886d373dd4bb61fb915e3d2d391ff17733cf4": {
+      "method": "http",
+      "last_failure": "extraction_failed",
+      "attempts": 1,
+      "last_attempt": "2026-10-18T01:59:25.318357749Z",
+      "last_seen": "2026-10-18T01:59:25.318357749Z"
+    },
+    "349a5089b2639229fba23565c414df2a4237acafb0e97b6764358432a251e45b": {
+      "method": "crawlbase",
+      "last_failure": "http_403",
+      "attempts": 1,
+      "last_attempt": "2026-10-18T01:59:23.305464715Z",
+      "last_seen": "2026-10-18T01:59:23.305464715Z"
+    },
+    "433538cf1c4bb7c739809b7fda28ce962bb46b1003799a28291528e8fc8aa637": {
+      "method": "http",
+      "last_failure": "extraction_failed",
+      "attempts": 1,
+      "last_attempt": "2026-10-18T01:59:24.352466182Z",
+      "last_seen": "2026-10-18T01:59:24.352466182Z"
+    },
+    "4d642a130cc4e93ede5f41e80ff2f95d1cc28b2db0f5211e0bded34258ab4b16": {
+      "method": "crawlbase",
+      "last_failure": "http_403",
+      "attempts": 1,
+      "last_attempt": "2026-10-18T01:59:28.201537782Z",
+      "last_seen": "2026-10-18T01:59:28.201537782Z"
+    },
+    "5001c6ed8f6a7484a4471f8bca2b74761b202e7d0df9577a85e7e3dde775d435": {
+      "method": "crawlbase",
+      "last_failure": "http_403",
+      "attempts": 1,
+      "last_attempt": "2026-10-18T01:59:25.183908708Z",
+      "last_seen": "2026-10-18T01:59:25.183908708Z"
+    },
+    "59de6aa1c2d0688a6e2d94aec1434229481e6e3f1fe2ef566d01479501555b81": {
+      "method": "http",
+      "last_failure": "extraction_failed",
+      "attempts": 1,
+      "last_attempt": "2026-10-18T01:59:23.850488456Z",
+      "last_seen": "2026-10-18T01:59:23.850488456Z"
+    },
+    "59df0b0c4137d16f0400317ec021daf67d7190bd955a4ec3ce57aca04697e289": {
+      "method": "http",
+      "last_failure": "extraction_failed",
+      "attempts": 1,
+      "last_attempt": "2026-10-18T01:59:26.630384842Z",
+      "last_seen": "2026-10-18T01:59:26.630384842Z"
+    },
+    "5b88b1d8c67f97aa9d94ccca66b43ac7702e2ae55cc337ee2517969d807c31be": {
+      "method": "crawlbase",
+      "last_failure": "http_403",
+      "attempts": 1,
+      "last_attempt": "2026-10-18T01:59:28.13330989Z",
+      "last_seen": "2026-10-18T01:59:28.13330989Z"
+    },
+    "6c8d9bc62d432a154d584f997ab34ebacfb83c1bf11d7ddfdbd01007e7f1138a": {
+      "method": "http",
+      "last_failure": "extraction_failed",
+      "attempts": 1,
+      "last_attempt": "2026-10-18T01:59:23.370653712Z",
+      "last_seen": "2026-10-18T01:59:23.370653712Z"
+    },
+    "7500272d0d1a0c325132d471215e760f0cdff5277bc44a0b0554bacfde7ffd0c": {
+      "method": "crawlbase",
+      "last_failure": "http_403",
+      "attempts": 1,
+      "last_attempt": "2026-10-18T01:59:23.208527608Z",
+      "last_seen": "2026-10-18T01:59:23.208527608Z"
+    },
+    "79f356a2729676e20b41107f8bbd9375d658dcd218c8332f4a727bd5e6e6bfa4": {
+      "method": "http",
+      "last_failure": "extraction_failed",
+      "attempts": 1,
+      "last_attempt": "2026-10-18T01:59:25.481437068Z",
+      "last_seen": "2026-10-18T01:59:25.481437068Z"
+    },
+    "805f5644aad769e311cccf8ed6a17f4ab4247d8b5d202ee052c58b5053ed1787": {
+      "method": "crawlbase",
+      "last_failure": "http_403",
+      "attempts": 1,
+      "last_attempt": "2026-10-18T01:59:23.780498768Z",
+      "last_seen": "2026-10-18T01:59:23.780498768Z"
+    },
+    "906034f4c108ba9756f514a936ee9f9bbe3554a1c17ef892db31742a85e44631": {
+      "method": "crawlbase",
+      "last_failure": "http_403",
+      "attempts": 1,
+      "last_attempt": "2026-10-18T01:59:28.25028729Z",
+      "last_seen": "2026-10-18T01:59:28.25028729Z"
+    },
+    "b7b43092eea27d44225cf1f6de84e8d81efe3ae48f8a231f067d7284c73a3c27": {
+      "method": "crawlbase",
+      "last_failure": "http_403",
+      "attempts": 1,
+      "last_attempt": "2026-10-18T01:59:23.130097349Z",
+      "last_seen": "2026-10-18T01:59:23.130097349Z"
+    },
+    "bd24f4977b68cb9567db22321353a8db51acc301af000f7500f5d7570839092a": {
+      "method": "crawlbase",
+      "last_failure": "http_403",
+      "attempts": 1,
+      "last_attempt": "2026-10-18T01:59:25.118147096Z",
+      "last_seen": "2026-10-18T01:59:25.118147096Z"
+    },
+    "d730fef94ea38ecaadbccaf1be914d7ff9a337470f92abf0e8b341039b2a5882": {
+      "method": "http",
+      "last_failure": "extraction_failed",
+      "attempts": 1,
+      "last_attempt": "2026-10-18T01:59:29.220385948Z",
+      "last_seen": "2026-10-18T01:59:29.220385948Z"
+    },
+    "e552d98d58496978fa3274a2bec2c7ff837a27a90ef41026d3a136865840eb18": {
+      "method": "crawlbase",
+      "last_failure": "http_403",
+      "attempts": 1,
+      "last_attempt": "2026-10-18T01:59:22.908917504Z",
+      "last_seen": "2026-10-18T01:59:22.908917504Z"
+    }
   }
 }
