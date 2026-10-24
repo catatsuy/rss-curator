@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math"
 	"net"
 	"os"
@@ -143,7 +144,13 @@ func (a *AI) interest(ctx context.Context, article Article, intro string) (bool,
 	if e != nil {
 		return false, apiError("Decisions API", e)
 	}
-	return scoreDecision(d, a.threshold)
+	accepted, e := scoreDecision(d, a.threshold)
+	if e != nil {
+		return false, e
+	}
+	score := d.Answers[0].AsAny().(openai.DecisionAnswerScore).Score
+	slog.Info("興味判定", "url", safeArticleURL(article.URL), "model", a.interestModel, "score", score, "threshold", a.threshold, "accepted", accepted)
+	return accepted, nil
 }
 
 // 長い本文を欠落なく分割し、各部分の詳細を連結する。再圧縮で詳細を落とさない。

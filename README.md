@@ -127,6 +127,8 @@ Actionsを有効にし、`GITHUB_TOKEN`による`rss-state`へのpushを許可�
 
 スコアは0始まりのレベル番号の確率加重平均です。初期設定は0〜2で、0.8以上を採用します。閾値はレベルの範囲内に設定してください。拒否や不正な応答は不採用として確定せず、再試行対象にします。
 
+正常な興味判定は、構造化ログ「興味判定」に記事URL、モデル、`score`、`threshold`、`accepted`を記録します。URLの認証情報・クエリ等は省略します。`all`と`digest`の本体は興味判定を行わないため、このログは出ません。
+
 Actionsでは同名のRepository variablesでモデルと閾値を変更できます。評価ラベルを変える場合は、ワークフローの`env`にも`INTEREST_LEVELS`を追加してください。API使用量は[OpenAI Usage](https://platform.openai.com/usage)でプロジェクト・モデル別に確認できます。
 
 ### 記事取得のCrawlbaseフォールバック
