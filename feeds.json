@@ -79,6 +79,11 @@
     "url": "https://gfw.report/index.xml",
     "path_suffix": "/en/",
     "mode": "all"
+  },
+  {
+    "name": "research!rsc",
+    "url": "https://research.swtch.com/feed.atom",
+    "mode": "all"
   }
 ]
 
