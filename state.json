@@ -3732,6 +3732,7 @@
     "ee157763b4c2695e1f99888007d42e8f273cea89e2a5b08f6fb642b07e6ee8e3": "2026-10-24T07:27:33.157939795Z",
     "ee30ed958850e917adcab2ec9a8d77cd3c5893db516c66c8e8124ecac1e520ce": "2026-10-24T07:27:33.158205037Z",
     "ee40b7935f8d1d6ea0c207c1e2fe2e8a0fb97933ccd8fb808682f277742e66a5": "2026-10-24T07:27:33.156046091Z",
+    "ee4c22366ef7e7abd786b0a4bc8d65774ddf350a3208b6c38568ae822ed0b9b0": "2026-10-24T07:29:51.854105661Z",
     "ee502169554502dd95e8e9d98ac0131fc167ef3a454817fcf7effb524125ecc5": "2026-10-24T07:27:33.157811351Z",
     "ee5a8ad2adb647219b28e72eb84cb2526f388623bf35480e4390c4730f14ae48": "2026-10-17T05:32:11.048632954Z",
     "ee6e249491d178221edcd24593379c723b18fe20121bce364dcaeacf846812bf": "2026-10-24T07:02:56.533690161Z",
@@ -4354,11 +4355,15 @@
     },
     "ee4c22366ef7e7abd786b0a4bc8d65774ddf350a3208b6c38568ae822ed0b9b0": {
       "method": "crawlbase",
-      "last_failure": "http_403",
-      "attempts": 1,
-      "failures": 1,
-      "last_attempt": "2026-10-24T07:28:52.734194869Z",
-      "last_seen": "2026-10-24T07:28:52.734194869Z"
+      "last_failure": "target_forbidden",
+      "attempts": 2,
+      "failures": 2,
+      "crawlbase_attempts": 1,
+      "crawlbase_failures": 1,
+      "last_attempt": "2026-10-24T07:29:51.854105661Z",
+      "last_seen": "2026-10-24T07:29:51.854105661Z",
+      "stopped": true,
+      "stop_reason": "target_forbidden"
     }
   }
 }
