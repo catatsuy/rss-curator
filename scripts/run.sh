@@ -79,12 +79,27 @@ mkfifo "$work/events" "$work/replies"
 worker=$!
 exec 4>"$work/replies"
 exec 3<"$work/events"
+post_article() {
+  if [[ "$event" == link\ * ]]; then
+    printf '%s' "$link_payload" | base64 --decode | notify_slack -c /dev/null -snippet -snippet-type text -filename "$id.txt"
+  else
+    notify_slack -c /dev/null -snippet -snippet-type markdown -filename "$id.md" <"$output/pending/$id.md"
+  fi
+}
 while IFS= read -r event <&3; do
   case "$event" in
-    'ready '*)
-      id=${event#ready }
+    'ready '*|'link '*)
+      link_payload=""
+      if [[ "$event" == link\ * ]]; then
+        link_data=${event#link }
+        id=${link_data%% *}
+        link_payload=${link_data#* }
+        [[ "$link_payload" =~ ^[A-Za-z0-9+/]+={0,2}$ ]] || { echo '投稿データが不正です' >&2; exit 1; }
+      else
+        id=${event#ready }
+      fi
       [[ "$id" =~ ^[0-9a-f]{64}$ ]] || { echo '投稿IDが不正です' >&2; exit 1; }
-      if notify_slack -c /dev/null -snippet -snippet-type markdown -filename "$id.md" <"$output/pending/$id.md" >"$work/slack.log" 2>&1; then
+      if post_article >"$work/slack.log" 2>&1; then
         echo posted >&4
       else
         slack_status=$?

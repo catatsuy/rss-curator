@@ -24,13 +24,30 @@ Slackには1記事につき1つのMarkdownファイルを投稿します。長�
 
 ### 情報源ごとの読み方
 
-`feeds.json`で情報源と処理モードを管理します。初期設定にはCloudflare、Meta Engineering、Go Blog、Feisty Duck、GFW Reportなど16フィードを登録しています。
+`feeds.json`で情報源と処理モードを管理します。初期設定にはCloudflare、Meta Engineering、Go Blog、Feisty Duck、GFW Report、research!rsc、OpenAIなど18フィードを登録しています。
 
 | モード | 読み方 |
 | --- | --- |
 | `select` | 通常の情報源向け。本文を読んで興味を判定し、採用記事を詳細要約する |
 | `all` | すべて読みたい情報源向け。興味判定を省略して詳細要約する |
 | `digest` | Feisty Duck向け。本体を必ず要約し、紹介先も個別に選別・要約する |
+
+OpenAIは英語版RSS（`https://openai.com/news/rss.xml`）を購読し、専用オプション`openai_japanese: true`で日本語版を優先します。このオプションはOpenAI公式RSSの`select`モードだけで利用できます。省略・`false`なら通常の`select`と同じ動作です。
+
+```json
+{
+  "name": "OpenAI",
+  "url": "https://openai.com/news/rss.xml",
+  "mode": "select",
+  "openai_japanese": true
+}
+```
+
+まず記事URLに`/ja-JP`を付けて取得し、リダイレクト後も同じ日本語パスで、抽出本文に十分な日本語（かな20文字以上、日本語80文字以上、文字の25%以上）があることを確認します。日本語本文があればRSSのタイトル・概要・本文フィールドで興味判定し、採用記事の日本語版URLだけを投稿します。詳細要約は行いません。英語のcanonicalを宣言する日本語ページも、実際の日本語URLを投稿します。日本語版がなければRSS情報で事前に除外せず、英語本文による従来の興味判定・詳細要約を行います。どちらも興味判定APIは1回で、待機中や処理済みの記事は呼び出しません。
+
+日本語版の404等の恒久エラー、英語版へのリダイレクト、日本語本文の不足は英語記事の通常の興味判定・詳細要約へ戻します。403・429は次回からCrawlbase、通信・サーバー障害は既存の上限まで再試行し、日本語版の取得を断念したら英語版へ戻します。日本語版の不在自体は取得断念通知や既読扱いにしません。英語版の取得失敗通知は従来どおりです。待機中・Crawlbase未設定や上限到達中は、RSSの興味判定も省略します。
+
+日本語版は詳細要約の代わりにURLだけを、他の記事と同じ`notify_slack`の投稿経路で送ります。Markdownファイルは生成しません。投稿成功後だけ英語・日本語・canonicalの対応を処理済みとして保存します。
 
 `digest`では、リンク周辺の紹介文も興味判定に使います。本体と紹介先は別々のファイルとして届けます。広告、購読、ナビゲーション、共有リンクを除外し、紹介先の記事にあるリンクは追跡しません。紹介先のハッシュ一覧と完了状態を保存し、本体と全紹介先が処理済み（不採用・除外・停止を含む）なら本体を再取得しません。未完了の紹介先がすべて待機中、Crawlbase未設定、利用上限到達などの場合も本体を取得しません。紹介先の再試行が必要な場合だけ、URLを再発見するために本体を取得します。
 
@@ -219,6 +236,8 @@ notify_slack -c /dev/null -snippet -snippet-type markdown \
 ```
 
 `run`は`pending/ID.md`と`manifest.json`、Shell用の`upload-ids`を出力します。投稿失敗時はackしないでください。通常はこの手順を自動化した`scripts/run.sh`を使います。
+
+OpenAIの日本語版は例外で、`manifest.json`にタイトルとURLを記録し、`path`とMarkdownファイルを生成しません。分割実行では、そのURLだけを標準入力から`notify_slack -c /dev/null -snippet -snippet-type text -filename ARTICLE_ID.txt`へ渡し、成功後だけ同じIDをackしてください。
 
 ## エラーが起きたとき
 

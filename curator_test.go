@@ -337,7 +337,7 @@ func TestChunksAndConfig(t *testing.T) {
 		t.Fatal("Secretsなしで通常実行を受理しました")
 	}
 	feeds, e := readFeeds("feeds.json")
-	if e != nil || len(feeds) != 16 {
+	if e != nil || len(feeds) != 18 {
 		t.Fatal(feeds, e)
 	}
 	if e := ack(filepath.Join(t.TempDir(), "state.json"), "../x"); e == nil {

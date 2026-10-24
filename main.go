@@ -3,12 +3,14 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 )
 
@@ -76,6 +78,11 @@ func deliveryStream(input io.Reader, output io.Writer) (func(string, string) err
 		}
 		return nil
 	}
-	return func(id, _ string) error { return exchange("ready "+id, "posted") },
+	return func(id, payload string) error {
+			if strings.HasPrefix(payload, "link\n") {
+				return exchange("link "+id+" "+base64.StdEncoding.EncodeToString([]byte(strings.TrimPrefix(payload, "link\n"))), "posted")
+			}
+			return exchange("ready "+id, "posted")
+		},
 		func() error { return exchange("saved", "continue") }
 }

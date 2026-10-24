@@ -84,6 +84,12 @@
     "name": "research!rsc",
     "url": "https://research.swtch.com/feed.atom",
     "mode": "all"
+  },
+  {
+    "name": "OpenAI",
+    "url": "https://openai.com/news/rss.xml",
+    "mode": "select",
+    "openai_japanese": true
   }
 ]
 

@@ -274,6 +274,22 @@ func safeArticleURL(raw string) string {
 }
 
 func (r *runner) fetchArticle(ctx context.Context, raw, title, mime string) (Article, error) {
+	return r.fetchArticleWithPolicy(ctx, raw, title, mime, false)
+}
+
+// 任意の日本語版の確認では、不在を既読や取得断念通知にしない。
+func (r *runner) fetchArticleWithPolicy(ctx context.Context, raw, title, mime string, optional bool) (Article, error) {
+	notify := func(u string) error {
+		if optional {
+			return nil
+		}
+		return r.notifyFetchFailure(u)
+	}
+	markStopped := func(id string, now time.Time) {
+		if !optional {
+			r.state.Processed[id] = now
+		}
+	}
 	u, err := normalize(raw)
 	if err != nil {
 		return Article{}, err
@@ -316,7 +332,7 @@ func (r *runner) fetchArticle(ctx context.Context, raw, title, mime string) (Art
 		return Article{}, errFetchDeferred
 	}
 	if f.Stopped {
-		if e := r.notifyFetchFailure(u); e != nil {
+		if e := notify(u); e != nil {
 			return Article{}, e
 		}
 		f = r.state.Fetch[id]
@@ -330,16 +346,16 @@ func (r *runner) fetchArticle(ctx context.Context, raw, title, mime string) (Art
 			outcome = "stopped"
 		}
 		result.Reason = reason
-		f.FailureNoticePending = reason == "fetch_failure_limit"
+		f.FailureNoticePending = !optional && reason == "fetch_failure_limit"
 		f.Stopped = true
 		f.StopReason = reason
 		f.NextAttempt = time.Time{}
 		r.state.Fetch[id] = f
-		r.state.Processed[id] = now
+		markStopped(id, now)
 		if e := r.save(); e != nil {
 			return Article{}, fmt.Errorf("%w: %v", errDelivery, e)
 		}
-		if e := r.notifyFetchFailure(u); e != nil {
+		if e := notify(u); e != nil {
 			return Article{}, e
 		}
 		return Article{}, errFetchDeferred
@@ -386,7 +402,7 @@ func (r *runner) fetchArticle(ctx context.Context, raw, title, mime string) (Art
 			f.LastFailure = result.Reason
 			if result.Permanent || f.CrawlbaseFailures >= maxCrawlbaseFailures {
 				f.Stopped = true
-				r.state.Processed[id] = now
+				markStopped(id, now)
 			} else {
 				f.NextAttempt = now.Add(rateLimitWait)
 			}
@@ -424,7 +440,7 @@ func (r *runner) fetchArticle(ctx context.Context, raw, title, mime string) (Art
 					r.state.HostRetryAfter[hash(status.Host)] = f.NextAttempt
 				case 401, 404, 410:
 					f.Stopped = true
-					r.state.Processed[id] = now
+					markStopped(id, now)
 				}
 			} else if a.httpStatus >= 200 && a.httpStatus < 300 {
 				f.LastFailure = "extraction_failed"
@@ -441,7 +457,7 @@ func (r *runner) fetchArticle(ctx context.Context, raw, title, mime string) (Art
 			f.Stopped = true
 			f.StopReason = "fetch_failure_limit"
 			f.NextAttempt = time.Time{}
-			r.state.Processed[id] = now
+			markStopped(id, now)
 		}
 	} else {
 		f.Failures = 0
@@ -454,17 +470,20 @@ func (r *runner) fetchArticle(ctx context.Context, raw, title, mime string) (Art
 		outcome = "retry"
 	}
 	if err != nil && f.Stopped {
-		f.FailureNoticePending = true
+		f.FailureNoticePending = !optional
 		if f.StopReason == "" {
 			f.StopReason = f.LastFailure
 		}
+	}
+	if optional {
+		f.FailureNoticePending = false
 	}
 	r.state.Fetch[id] = f
 	// API・Slackの処理より前に取得状態をローカル保存する。シェルが従来どおりpushする。
 	if saveErr := r.save(); saveErr != nil {
 		return Article{}, fmt.Errorf("%w: %v", errDelivery, saveErr)
 	}
-	if noticeErr := r.notifyFetchFailure(u); noticeErr != nil {
+	if noticeErr := notify(u); noticeErr != nil {
 		return Article{}, noticeErr
 	}
 	return a, err

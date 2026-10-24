@@ -1,6 +1,33 @@
 package main
 
-import "testing"
+import (
+	"path/filepath"
+	"testing"
+)
+
+func TestOpenAIJapaneseOption(t *testing.T) {
+	for _, tc := range []struct {
+		name, config string
+		wantError    bool
+	}{
+		{"enabled", `[{"name":"OpenAI","url":"https://openai.com/news/rss.xml","mode":"select","openai_japanese":true}]`, false},
+		{"disabled", `[{"name":"OpenAI","url":"https://openai.com/news/rss.xml","mode":"select","openai_japanese":false}]`, false},
+		{"other-feed", `[{"name":"Other","url":"https://example.com/rss","mode":"select","openai_japanese":true}]`, true},
+		{"other-mode", `[{"name":"OpenAI","url":"https://openai.com/news/rss.xml","mode":"all","openai_japanese":true}]`, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "feeds.json")
+			mustWrite(t, path, tc.config)
+			feeds, err := readFeeds(path)
+			if (err != nil) != tc.wantError {
+				t.Fatalf("unexpected config validation: %v", err)
+			}
+			if err == nil && feeds[0].OpenAIJapanese != (tc.name == "enabled") {
+				t.Fatal("オプションが読み込まれていません")
+			}
+		})
+	}
+}
 
 func TestFeedPathSuffix(t *testing.T) {
 	feeds, err := readFeeds("feeds.json")

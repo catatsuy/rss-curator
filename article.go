@@ -18,6 +18,7 @@ type Article struct {
 	Title, URL, Markdown, HTML string
 	PDF, Paper                 bool
 	httpStatus                 int
+	finalURL                   string
 }
 type Link struct{ Title, URL, Context string }
 
@@ -190,6 +191,7 @@ func readArticleResponse(a Article, r *http.Response) (Article, error) {
 		return a, fmt.Errorf("HTMLの解析に失敗しました")
 	}
 	finalURL := a.URL
+	a.finalURL = finalURL
 	a.URL = canonical(doc, finalURL)
 	walk(doc, func(n *html.Node) {
 		if n.Data == "meta" {
