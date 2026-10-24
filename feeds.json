@@ -37,7 +37,7 @@
   {
     "name": "The Go Blog",
     "url": "https://go.dev/blog/feed.atom",
-    "mode": "select"
+    "mode": "all"
   },
   {
     "name": "Google Online Security Blog",
