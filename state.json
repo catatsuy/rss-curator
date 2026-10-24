@@ -4211,11 +4211,14 @@
   "fetch": {
     "0da0c416868b2bff89d7b2b76950b74eeb9fbacd6b9914b7f08111e37ad8a843": {
       "method": "crawlbase",
-      "last_failure": "http_403",
-      "attempts": 1,
-      "failures": 1,
-      "last_attempt": "2026-10-24T07:27:33.218100014Z",
-      "last_seen": "2026-10-24T07:27:33.218100014Z"
+      "last_failure": "crawlbase_upstream_error",
+      "attempts": 2,
+      "failures": 2,
+      "crawlbase_attempts": 1,
+      "crawlbase_failures": 1,
+      "last_attempt": "2026-10-24T07:28:52.75578236Z",
+      "next_attempt": "2026-10-24T08:28:52.75578236Z",
+      "last_seen": "2026-10-24T07:28:52.75578236Z"
     },
     "16488328fe06278c9a2837872a8c50020ecb86d95d0f2fd799fcd5daca0cff73": {
       "method": "crawlbase",
@@ -4339,11 +4342,23 @@
     },
     "d83e7a0940721e28544ba671d50b6756692f2b33577c4b45f511f8bc4ca959a6": {
       "method": "crawlbase",
+      "last_failure": "target_forbidden",
+      "attempts": 2,
+      "failures": 2,
+      "crawlbase_attempts": 1,
+      "crawlbase_failures": 1,
+      "last_attempt": "2026-10-24T07:28:46.485698546Z",
+      "last_seen": "2026-10-24T07:28:46.485698546Z",
+      "stopped": true,
+      "stop_reason": "target_forbidden"
+    },
+    "ee4c22366ef7e7abd786b0a4bc8d65774ddf350a3208b6c38568ae822ed0b9b0": {
+      "method": "crawlbase",
       "last_failure": "http_403",
       "attempts": 1,
       "failures": 1,
-      "last_attempt": "2026-10-24T07:27:33.161753814Z",
-      "last_seen": "2026-10-24T07:27:33.161753814Z"
+      "last_attempt": "2026-10-24T07:28:52.734194869Z",
+      "last_seen": "2026-10-24T07:28:52.734194869Z"
     }
   }
 }
