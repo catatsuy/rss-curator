@@ -4368,11 +4368,14 @@
     },
     "f8c156dba7886826388b35c0408d87e493aa3c6ad59ba61bfe6146ea7a6b00f6": {
       "method": "crawlbase",
-      "last_failure": "http_403",
-      "attempts": 1,
-      "failures": 1,
-      "last_attempt": "2026-10-24T14:02:44.403847911Z",
-      "last_seen": "2026-10-24T14:02:44.403847911Z"
+      "last_failure": "crawlbase_upstream_error",
+      "attempts": 2,
+      "failures": 2,
+      "crawlbase_attempts": 1,
+      "crawlbase_failures": 1,
+      "last_attempt": "2026-10-25T00:22:42.53462872Z",
+      "next_attempt": "2026-10-25T01:22:42.53462872Z",
+      "last_seen": "2026-10-25T00:22:42.53462872Z"
     }
   }
 }
