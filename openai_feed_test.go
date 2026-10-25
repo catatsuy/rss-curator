@@ -22,6 +22,59 @@ import (
 const openAITestEnglish = "https://openai.com/index/technical-article/"
 const openAITestJapanese = "https://openai.com/ja-JP/index/technical-article/"
 
+func TestOpenAIArticleURLPreservesPath(t *testing.T) {
+	for _, suffix := range []string{"", "/", "?source=rss", ".pdf"} {
+		raw := "https://openai.com/index/article" + suffix
+		if got := openAIEnglishURL(raw); got != raw {
+			t.Fatalf("URLを推測で変更しました: %q -> %q", raw, got)
+		}
+	}
+}
+
+func TestOpenAIRedirectDeliveryAndDedup(t *testing.T) {
+	for _, status := range []int{301, 302, 308} {
+		t.Run(fmt.Sprint(status), func(t *testing.T) {
+			ai, decisions, summaries := testAI(t)
+			r := testRunner(t, ai)
+			r.client = &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+				if req.Header.Get("User-Agent") != browserSourceUserAgent {
+					t.Fatal("リダイレクトでUAを失いました")
+				}
+				if req.URL.String() == strings.TrimSuffix(openAITestJapanese, "/") {
+					return fetchResponse(req, status, "", map[string]string{"Location": openAITestJapanese}), nil
+				}
+				if req.URL.String() != openAITestJapanese {
+					t.Fatalf("unexpected URL: %s", req.URL)
+				}
+				return fetchResponse(req, 200, japaneseHTML(openAITestEnglish), nil), nil
+			})}
+			posts := 0
+			r.post = func(_, payload string) error {
+				posts++
+				if payload != "link\n"+openAITestJapanese+"\n" {
+					t.Fatalf("最終URLを投稿していません: %q", payload)
+				}
+				return nil
+			}
+			item := openAITestItem()
+			item.Link = strings.TrimSuffix(openAITestEnglish, "/")
+			if err := processOpenAITestItem(r, item); err != nil {
+				t.Fatal(err)
+			}
+			item.Link, item.GUID = openAITestEnglish, "different-guid"
+			if err := processOpenAITestItem(r, item); err != nil {
+				t.Fatal(err)
+			}
+			if posts != 1 || *decisions != 1 || *summaries != 0 {
+				t.Fatal("転送前後で再投稿しました")
+			}
+			if !r.state.done([]string{hash(strings.TrimSuffix(openAITestEnglish, "/"))}) || !r.state.done([]string{hash(openAITestEnglish)}) {
+				t.Fatal("転送前後の既読状態が不正")
+			}
+		})
+	}
+}
+
 func japaneseHTML(canonical string) string {
 	return `<html lang="ja"><head><title>技術記事</title><link rel="canonical" href="` + canonical + `"></head><body><nav>English 日本語</nav><article><h1>技術記事</h1>` + strings.Repeat(`<p>この技術記事では分散システムの内部実装と通信の仕組みを詳しく説明します。性能を測定し、設計上の制約と改善方法を比較しました。接続の再利用により処理時間を短縮し、安全性も維持します。</p>`, 5) + `</article></body></html>`
 }

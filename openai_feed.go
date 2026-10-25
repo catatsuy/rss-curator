@@ -108,7 +108,7 @@ func (r *runner) processFeedItem(ctx context.Context, f Feed, item *gofeed.Item,
 	if canonicalEnglish != "" {
 		id = hash(canonicalEnglish)
 	}
-	keys = append(keys, hash(japanese), hash(a.finalURL), hash(a.URL), id)
+	keys = append(keys, hash(japanese), hash(a.finalURL), hash(a.URL), hash(openAIEnglishURL(a.finalURL)), id)
 	already := r.state.done(keys) || r.claimed[id]
 	// 既存の処理済みキーを別の未処理IDへ付け替えない。
 	for _, key := range keys {

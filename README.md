@@ -39,9 +39,12 @@ OpenAIは英語版RSS（`https://openai.com/news/rss.xml`）を購読し、専�
   "name": "OpenAI",
   "url": "https://openai.com/news/rss.xml",
   "mode": "select",
-  "openai_japanese": true
+  "openai_japanese": true,
+  "http_workaround": true
 }
 ```
+
+`http_workaround`は通常のHTTP取得と分離した回避処理を選ぶフラグです。省略・`false`では通常の設定を使います。`true`の場合だけ、RSSと記事の直接取得にHTTP/1.1と明示的な鍵交換曲線（X25519・P-256・P-384）を使います。Go既定のハイブリッド鍵交換は使用しません。証明書検証と既存のタイムアウト・リダイレクト制限は維持します。適用範囲はそのフィードのホストとサブドメインで、別ドメインへの転送先は通常の通信設定に戻します。現在はOpenAIのフィードだけで有効にしています。
 
 まず記事URLに`/ja-JP`を付けて取得し、リダイレクト後も同じ日本語パスで、抽出本文に十分な日本語（かな20文字以上、日本語80文字以上、文字の25%以上）があることを確認します。日本語本文があればRSSのタイトル・概要・本文フィールドで興味判定し、採用記事の日本語版URLだけを投稿します。詳細要約は行いません。英語のcanonicalを宣言する日本語ページも、実際の日本語URLを投稿します。日本語版がなければRSS情報で事前に除外せず、英語本文による従来の興味判定・詳細要約を行います。どちらも興味判定APIは1回で、待機中や処理済みの記事は呼び出しません。
 
@@ -150,16 +153,18 @@ Actionsでは同名のRepository variablesでモデルと閾値を変更でき�
 
 ### 記事取得のCrawlbaseフォールバック
 
-通常HTTPで記事を取得し、403・429の場合だけ、**次回の実行**から[Crawlbase Crawling API](https://crawlbase.com/docs/crawling-api)に切り替えます。同じ実行内では切り替え・再試行を行いません。RSS取得には使用しません。HTMLは従来と同じ本文抽出、canonical判定、興味判定、要約、逐次Slack投稿へ渡します。SDKは追加していません。
+通常HTTPで記事を取得し、403・429の場合だけ、**次回の実行**から[Crawlbase Crawling API](https://crawlbase.com/docs/crawling-api)に切り替えます。同じ実行内ではエラーによる切り替え・再試行を行いません（下記の転送先取得を除く）。RSS取得には使用しません。HTMLは従来と同じ本文抽出、canonical判定、興味判定、要約、逐次Slack投稿へ渡します。SDKは追加していません。
+
+Crawlbaseが成功扱い（HTTP 200・`cb_status: 200`）で301/302/303/307/308を返した場合は、転送応答の本文を使わず、`original_header_location`または`url`ヘッダーの転送先をCrawlbaseで再取得します。各要求を実行内の利用回数に数え、循環や10回以上の転送は停止します。利用上限による繰り越しは失敗回数に加えません。転送先URLも認証情報・クエリを除いてログに記録します。
 
 | 環境変数 | 初期値 | 用途 |
 | --- | --- | --- |
 | `CRAWLBASE_TOKEN` | 未設定 | **Normal Token**。Actionsでは同名のRepository Secretに登録 |
 | `CRAWLBASE_MAX_REQUESTS` | `5` | 1実行のCrawlbaseリクエスト上限（失敗も含む）。`0`で停止。Actionsでは同名のRepository variableで変更 |
 | `ARTICLE_MAX_FETCH_FAILURES` | `3` | 1記事の連続取得失敗の上限。通常HTTP・Crawlbaseを合算し、実行間で維持。1以上の整数。Actionsでは同名のRepository variableで変更 |
-| `ARTICLE_USER_AGENT` | `rss-curator (+https://github.com/catatsuy/rss-curator)` | 通常HTTPの記事取得（HEAD/GET）で送るUA。未設定・空文字・空白の場合も既定値を送る。Actionsでは同名のRepository variableで変更 |
+| `ARTICLE_USER_AGENT` | 通常記事は`rss-curator (+https://github.com/catatsuy/rss-curator)`、OpenAI・Mediumはブラウザ系UA | 通常HTTPの記事取得（HEAD/GET）とOpenAI・MediumのRSS取得で送るUAの上書き。Actionsでは同名のRepository variableで変更 |
 
-サイトによってはcrawler風のUAを拒否するため、記事取得のUAを指定できます。ブラウザ固有のヘッダー追加やサイトごとの例外は設けていません。RSS・OpenAI・Crawlbase APIのUAは変更しません。UAを変更しても、既に停止・処理済みになった記事を自動的に再試行することはありません。
+サイトによってはcrawler風のUAを拒否するため、記事取得のUAを指定できます。未設定・空白の場合、`openai.com`・`medium.com`とそのサブドメインではRSS・記事ともブラウザ系UAを使い、他のRSSのUAは変更しません。明示したUAは従来どおり全記事に適用し、OpenAI・MediumのRSSにも適用します。リダイレクト先のドメインごとにUAを再判定し、既存のクライアント設定と最大10回の転送制限を維持します。URLの末尾`/`は推測で追加せず、実際の最終URLとcanonicalを重複排除に使います。OpenAI API・Crawlbase APIへのUAやCrawlbase側の対象サイトUAは変更しません。UA変更だけで403を回避できるとは限りません。RSSの403は再試行ループやCrawlbase取得を行わず、その実行ではエラーにします。UAを変更しても、既に停止・処理済みになった記事を自動的に再試行することはありません。
 
 YouTube（短縮URL・サブドメインを含む）、求人サイト/求人・採用ページ、寄付・購読ページは取得前に除外します。これらには通常HTTP・Crawlbase・OpenAIのリクエストを送りません。Crawlbaseへの切り替え予定だったURLにも適用します。
 

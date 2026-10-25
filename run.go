@@ -24,6 +24,7 @@ type Feed struct {
 	Mode           string `json:"mode"`
 	PathSuffix     string `json:"path_suffix,omitempty"`
 	OpenAIJapanese bool   `json:"openai_japanese,omitempty"`
+	HTTPWorkaround bool   `json:"http_workaround,omitempty"`
 }
 
 func (f Feed) includes(raw string) bool {
@@ -98,7 +99,7 @@ func fetchFeed(ctx context.Context, c *http.Client, u string) (*gofeed.Feed, err
 	if e != nil {
 		return nil, e
 	}
-	resp, e := c.Do(req)
+	resp, e := doSourceRequest(c, req)
 	if e != nil {
 		return nil, fmt.Errorf("RSSを取得できません")
 	}
@@ -341,7 +342,17 @@ func runWithDelivery(ctx context.Context, config, statePath, output string, dry 
 		r.post = post
 		r.checkpoint = checkpoint
 	}
+	normalClient := r.client
 	for _, f := range feeds {
+		r.client = normalClient
+		if f.HTTPWorkaround {
+			parsed, _ := url.Parse(f.URL)
+			r.client, e = newHTTPWorkaroundClient(normalClient, parsed.Hostname())
+			if e != nil {
+				return e
+			}
+			defer r.client.CloseIdleConnections()
+		}
 		feed, e := fetchFeed(ctx, r.client, f.URL)
 		if e != nil {
 			slog.Error("RSSの処理に失敗しました", "情報源", f.Name, "エラー", e)

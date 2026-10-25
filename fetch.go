@@ -120,8 +120,21 @@ type crawlResult struct {
 }
 
 func (c *crawlbaseClient) fetch(ctx context.Context, target, title string) (Article, crawlResult, error) {
+	return c.fetchRedirects(ctx, target, title, map[string]bool{})
+}
+
+func (c *crawlbaseClient) fetchRedirects(ctx context.Context, target, title string, visited map[string]bool) (Article, crawlResult, error) {
 	result := crawlResult{}
 	a := Article{Title: title, URL: target}
+	if visited[target] || len(visited) >= 10 {
+		result.Reason = "crawlbase_redirect_loop"
+		return a, result, fmt.Errorf("Crawlbaseの転送が循環、または10回を超えました")
+	}
+	if len(visited) > 0 && c.used >= c.limit {
+		result.Reason = "crawlbase_limit"
+		return a, result, errFetchDeferred
+	}
+	visited[target] = true
 	q := url.Values{"token": {c.token}, "url": {target}, "get_headers": {"true"}}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, crawlbaseEndpoint+"?"+q.Encode(), nil)
 	if err != nil {
@@ -140,6 +153,23 @@ func (c *crawlbaseClient) fetch(ctx context.Context, target, title string) (Arti
 	result.RetryAfter = resp.Header.Get("original_header_retry-after")
 	if result.RetryAfter == "" {
 		result.RetryAfter = resp.Header.Get("Retry-After")
+	}
+	// 転送レスポンスの本文を記事として扱わず、転送先を明示的に再取得する。
+	if resp.StatusCode == http.StatusOK && result.CBStatus == 200 && isArticleRedirect(result.OriginalStatus) {
+		next := ""
+		if location := resp.Header.Get("original_header_location"); location != "" {
+			next = resolve(target, location)
+		} else {
+			next, _ = normalize(resp.Header.Get("url"))
+		}
+		resp.Body.Close()
+		u, err := url.Parse(next)
+		if err != nil || next == "" || strings.EqualFold(u.Hostname(), "api.crawlbase.com") || excludedArticleURL(next) != "" {
+			result.Reason = "crawlbase_redirect_invalid"
+			return a, result, fmt.Errorf("Crawlbaseの転送先URLが不正です")
+		}
+		slog.Info("Crawlbaseの記事転送", "url", safeArticleURL(target), "next_url", safeArticleURL(next), "original_status", result.OriginalStatus, "crawlbase_requests", c.used)
+		return c.fetchRedirects(ctx, next, title, visited)
 	}
 	// 520は、対象サイトの取得失敗を伝えるAPIのHTTPステータスにも使われる。
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == 520 {
@@ -208,6 +238,15 @@ func (c *crawlbaseClient) fetch(ctx context.Context, target, title string) (Arti
 		result.Reason = "extraction_failed"
 	}
 	return a, result, err
+}
+
+func isArticleRedirect(status int) bool {
+	switch status {
+	case 301, 302, 303, 307, 308:
+		return true
+	default:
+		return false
+	}
 }
 
 func (r *runner) fetchTime() time.Time {
@@ -397,6 +436,9 @@ func (r *runner) fetchArticleWithPolicy(ctx context.Context, raw, title, mime st
 	if method == fetchCrawlbase {
 		f.CrawlbaseAttempts++
 		a, result, err = r.crawlbase.fetch(ctx, u, title)
+		if errors.Is(err, errFetchDeferred) {
+			return deferFetch(result.Reason)
+		}
 		if err != nil {
 			f.CrawlbaseFailures++
 			f.LastFailure = result.Reason

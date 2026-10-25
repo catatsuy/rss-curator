@@ -147,7 +147,7 @@ func fetchArticle(ctx context.Context, c *http.Client, raw, title, mime string) 
 	}
 	req, _ := http.NewRequestWithContext(ctx, http.MethodHead, u, nil)
 	req.Header.Set("User-Agent", userAgent)
-	r, e := c.Do(req)
+	r, e := doSourceRequest(c, req)
 	if e == nil {
 		r.Body.Close()
 		if r.StatusCode == http.StatusTooManyRequests {
@@ -162,7 +162,7 @@ func fetchArticle(ctx context.Context, c *http.Client, raw, title, mime string) 
 	}
 	req, _ = http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	req.Header.Set("User-Agent", userAgent)
-	r, e = c.Do(req)
+	r, e = doSourceRequest(c, req)
 	if e != nil {
 		return a, fmt.Errorf("記事の取得に失敗しました")
 	}
