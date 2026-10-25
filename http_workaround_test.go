@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
+	"net/url"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -63,8 +65,8 @@ func TestHTTPWorkaroundPreservesNormalClient(t *testing.T) {
 	if workaround.Protocols.HTTP2() || !workaround.Protocols.HTTP1() || workaround.ForceAttemptHTTP2 || !reflect.DeepEqual(workaround.TLSClientConfig.NextProtos, []string{"http/1.1"}) {
 		t.Fatal("HTTP/1.1に限定されていません")
 	}
-	if !reflect.DeepEqual(workaround.TLSClientConfig.CurvePreferences, []tls.CurveID{tls.X25519, tls.CurveP256, tls.CurveP384}) {
-		t.Fatal("回避設定の鍵交換曲線が不正です")
+	if workaround.DialTLSContext == nil || workaround.TLSClientConfig.CurvePreferences != nil {
+		t.Fatal("uTLSの接続処理が設定されていません")
 	}
 	if workaround.TLSClientConfig.InsecureSkipVerify || workaround.TLSClientConfig.MinVersion != tls.VersionTLS13 {
 		t.Fatal("証明書検証・TLS下限を変更しました")
@@ -124,5 +126,56 @@ func TestHTTPWorkaroundDomainRouting(t *testing.T) {
 	resp.Body.Close()
 	if normalCalls != 4 || workaroundCalls != 2 {
 		t.Fatal("通常経路が変化しました")
+	}
+}
+
+func TestHTTPWorkaroundTLSVerification(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		trusted   bool
+		serverMax uint16
+		wantError bool
+	}{
+		{"trusted-tls13", true, tls.VersionTLS13, false},
+		{"untrusted", false, tls.VersionTLS13, true},
+		{"minimum-version", true, tls.VersionTLS12, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			requests := 0
+			server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requests++
+				if r.ProtoMajor != 1 || r.TLS.NegotiatedProtocol != "http/1.1" {
+					t.Error("HTTP/1.1とALPNが一致しません")
+				}
+				fmt.Fprint(w, sourceTestRSS)
+			}))
+			server.EnableHTTP2 = true
+			server.TLS = &tls.Config{MaxVersion: tc.serverMax, NextProtos: []string{"h2", "http/1.1"}}
+			server.StartTLS()
+			defer server.Close()
+			roots := x509.NewCertPool()
+			if tc.trusted {
+				roots.AddCert(server.Certificate())
+			}
+			base := http.DefaultTransport.(*http.Transport).Clone()
+			base.TLSClientConfig = &tls.Config{RootCAs: roots, MinVersion: tls.VersionTLS13}
+			defer base.CloseIdleConnections()
+			u, _ := url.Parse(server.URL)
+			client, err := newHTTPWorkaroundClient(&http.Client{Transport: base, Timeout: 3 * time.Second}, u.Hostname())
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer client.CloseIdleConnections()
+			feed, err := fetchFeed(context.Background(), client, server.URL)
+			if (err != nil) != tc.wantError {
+				t.Fatalf("TLS検証結果が不正: %v", err)
+			}
+			if tc.wantError && requests != 0 {
+				t.Fatal("TLS検証に失敗したのに本文を要求しました")
+			}
+			if !tc.wantError && (requests != 1 || len(feed.Items) != 1) {
+				t.Fatal("TLS接続後のRSS取得に失敗しました")
+			}
+		})
 	}
 }
