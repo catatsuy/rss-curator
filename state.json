@@ -4924,11 +4924,14 @@
     },
     "65a328ac4f85deaf37f7ba7e3794700f546eaf5177943293d5e102a0dd064cfe": {
       "method": "crawlbase",
-      "last_failure": "http_403",
-      "attempts": 1,
-      "failures": 1,
-      "last_attempt": "2026-11-02T06:09:52.929936312Z",
-      "last_seen": "2026-11-02T06:09:52.929936312Z"
+      "last_failure": "target_server_error",
+      "attempts": 2,
+      "failures": 2,
+      "crawlbase_attempts": 1,
+      "crawlbase_failures": 1,
+      "last_attempt": "2026-11-02T12:34:44.202247874Z",
+      "next_attempt": "2026-11-02T13:34:44.202247874Z",
+      "last_seen": "2026-11-02T12:34:44.202247874Z"
     },
     "6c8d9bc62d432a154d584f997ab34ebacfb83c1bf11d7ddfdbd01007e7f1138a": {
       "method": "http",
@@ -4984,11 +4987,14 @@
     },
     "93ced13be7b2396312f275b1901045e7d00d6a8f537c5881ef63197df502823e": {
       "method": "crawlbase",
-      "last_failure": "http_403",
-      "attempts": 1,
-      "failures": 1,
-      "last_attempt": "2026-11-02T06:09:52.95933083Z",
-      "last_seen": "2026-11-02T06:09:52.95933083Z"
+      "last_failure": "target_server_error",
+      "attempts": 2,
+      "failures": 2,
+      "crawlbase_attempts": 1,
+      "crawlbase_failures": 1,
+      "last_attempt": "2026-11-02T12:35:13.733544617Z",
+      "next_attempt": "2026-11-02T13:35:13.733544617Z",
+      "last_seen": "2026-11-02T12:35:13.733544617Z"
     },
     "95110a7e9a10de0f7d62dfbf3734490f914a7e5b8abd500d8f48c03a31d65984": {
       "method": "http",
