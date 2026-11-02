@@ -91,6 +91,60 @@
     "mode": "select",
     "openai_japanese": true,
     "http_workaround": true
+  },
+  {
+    "name": "APNIC Blog",
+    "url": "https://blog.apnic.net/feed/",
+    "mode": "select"
+  },
+  {
+    "name": "Netflix TechBlog",
+    "url": "https://netflixtechblog.com/feed",
+    "mode": "select"
+  },
+  {
+    "name": "GitHub Engineering",
+    "url": "https://github.blog/engineering/feed/",
+    "mode": "select"
+  },
+  {
+    "name": "Mozilla Hacks",
+    "url": "https://hacks.mozilla.org/feed/",
+    "mode": "select"
+  },
+  {
+    "name": "AWS Networking & Content Delivery",
+    "url": "https://aws.amazon.com/blogs/networking-and-content-delivery/feed/",
+    "mode": "select"
+  },
+  {
+    "name": "Google Project Zero",
+    "url": "https://googleprojectzero.blogspot.com/feeds/posts/default",
+    "mode": "select"
+  },
+  {
+    "name": "Brendan Gregg",
+    "url": "https://www.brendangregg.com/blog/rss.xml",
+    "mode": "select"
+  },
+  {
+    "name": "AWS Security Blog",
+    "url": "https://aws.amazon.com/blogs/security/feed/",
+    "mode": "select"
+  },
+  {
+    "name": "Spotify Engineering",
+    "url": "https://engineering.atspotify.com/feed/",
+    "mode": "select"
+  },
+  {
+    "name": "Potaroo",
+    "url": "http://www.potaroo.net/rss.xml",
+    "mode": "select"
+  },
+  {
+    "name": "Filippo Valsorda",
+    "url": "https://words.filippo.io/rss/",
+    "mode": "select"
   }
 ]
-
