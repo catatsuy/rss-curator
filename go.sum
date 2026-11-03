@@ -12,6 +12,8 @@ github.com/mmcdole/goxpp/v2 v2.0.0 h1:HrSCflxerUEqZQNq3u7ldtmE/XkwnTx4Zpq2DW4i5r
 github.com/mmcdole/goxpp/v2 v2.0.0/go.mod h1:CUduYMnO9JB6Z/uqDn9Ormk/r8E9BsLQxHPWDZ961Os=
 github.com/openai/openai-go/v3 v3.79.0 h1:r9Oe7tjXsez39TtsA6lCzF+SLXuVh9AYoJ/hmwiM41c=
 github.com/openai/openai-go/v3 v3.79.0/go.mod h1:i+lM+NFmWP+Yd+fYKEaPxUINBx+vZtRmY5gaszSfsiQ=
+github.com/openai/openai-go/v3 v3.91.1 h1:DMahxwjH/lteKlr3yoicxRDbMp6B7WkyBUP1yBUwbJY=
+github.com/openai/openai-go/v3 v3.91.1/go.mod h1:TQHvyB61TWJ7oEf7wnq4NAM/TatuqnUCJ+qbKj8POsE=
 github.com/refraction-networking/utls v1.8.2 h1:j4Q1gJj0xngdeH+Ox/qND11aEfhpgoEvV+S9iJ2IdQo=
 github.com/refraction-networking/utls v1.8.2/go.mod h1:jkSOEkLqn+S/jtpEHPOsVv/4V4EVnelwbMQl4vCWXAM=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=
