@@ -406,7 +406,10 @@ RSS取得、記事取得・本文抽出、APIの失敗は他の記事を止め�
 
 ## 開発時の確認
 
+push・Pull Request時には、CIで`go.mod`指定のGoを使い、ビルド・テスト・`go vet`を実行します。APIキーなどのSecretsは不要です。
+
 ```bash
+go build -o rss-curator .
 go test ./...
 go vet ./...
 staticcheck -checks="all,-ST1000" ./...

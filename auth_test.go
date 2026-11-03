@@ -176,7 +176,7 @@ func TestWorkloadIdentitySDKExchange(t *testing.T) {
 		}
 		return &http.Response{StatusCode: http.StatusOK, Header: http.Header{"Content-Type": []string{"application/json"}}, Body: io.NopCloser(strings.NewReader(body)), Request: r}, nil
 	})}))
-	if _, e := client.Decisions.New(context.Background(), openai.DecisionNewParams{Model: "gpt-6-luna", Input: openai.DecisionNewParamsInputUnion{OfString: openai.String("本文")}, Questions: []openai.DecisionNewParamsQuestionUnion{{OfScore: &openai.DecisionNewParamsQuestionScore{Instructions: "判定", Levels: []openai.DecisionNewParamsQuestionScoreLevel{{Label: "低"}, {Label: "高"}}}}}}); e != nil {
+	if _, e := client.Decisions.New(context.Background(), openai.DecisionNewParams{Model: "gpt-6-luna", Input: openai.DecisionNewParamsInputUnion{OfString: openai.String("本文")}, Questions: []openai.DecisionNewParamsQuestionUnion{{OfScore: &openai.DecisionNewParamsQuestionScore{Instructions: openai.DecisionNewParamsQuestionScoreInstructionsUnion{OfString: openai.String("判定")}, Levels: []openai.DecisionNewParamsQuestionScoreLevel{{Label: "低"}, {Label: "高"}}}}}}); e != nil {
 		t.Fatal(e)
 	}
 	if _, e := client.Responses.New(context.Background(), responses.ResponseNewParams{Model: "gpt-6.1-sol", Input: responses.ResponseNewParamsInputUnion{OfString: openai.String("本文")}}); e != nil {
