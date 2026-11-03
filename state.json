@@ -2565,6 +2565,7 @@
     "93a7bd5847cbe59e3205210c9acb93b0063c5b47861519c07c68ee6a9fd5ce82": "2026-10-25T01:38:45.137508594Z",
     "93b2a9a071af5249d9b5be4ae5049327293cc58ba32ddbe7ae3535133433b71b": "2026-10-17T05:31:14.225014788Z",
     "93cea8cd9f9d535215038e2a35a859adcdb7baa06574aef2b89ae52f0ef6c31f": "2026-10-25T01:38:45.137859842Z",
+    "93ced13be7b2396312f275b1901045e7d00d6a8f537c5881ef63197df502823e": "2026-11-03T03:34:16.319263184Z",
     "93d6498f623347f611c1f966398b068104a29d495ae362463f49b8994ccc5814": "2026-10-25T01:38:45.138649481Z",
     "93da30cb4d460dcaea8fbb06845083a4f326a5f32f3c478dbfa8900a610379bb": "2026-10-25T01:38:45.137667331Z",
     "93da854508e06bab5492270392af4b6c834834ca56a489bd0950207d28278461": "2026-10-25T01:38:45.136785098Z",
@@ -5057,14 +5058,15 @@
     },
     "93ced13be7b2396312f275b1901045e7d00d6a8f537c5881ef63197df502823e": {
       "method": "crawlbase",
-      "last_failure": "target_server_error",
-      "attempts": 2,
-      "failures": 2,
-      "crawlbase_attempts": 1,
-      "crawlbase_failures": 1,
-      "last_attempt": "2026-11-02T12:35:13.733544617Z",
-      "next_attempt": "2026-11-02T13:35:13.733544617Z",
-      "last_seen": "2026-11-02T12:35:13.733544617Z"
+      "last_failure": "crawlbase_upstream_error",
+      "attempts": 3,
+      "failures": 3,
+      "crawlbase_attempts": 2,
+      "crawlbase_failures": 2,
+      "last_attempt": "2026-11-03T03:34:16.319263184Z",
+      "last_seen": "2026-11-03T03:34:16.319263184Z",
+      "stopped": true,
+      "stop_reason": "fetch_failure_limit"
     },
     "95110a7e9a10de0f7d62dfbf3734490f914a7e5b8abd500d8f48c03a31d65984": {
       "method": "http",
