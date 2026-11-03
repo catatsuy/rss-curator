@@ -7,7 +7,7 @@ require (
 	github.com/mmcdole/gofeed v1.5.0
 	github.com/openai/openai-go/v3 v3.79.0
 	github.com/refraction-networking/utls v1.8.2
-	golang.org/x/net v0.61.0
+	golang.org/x/net v0.62.0
 )
 
 require (
