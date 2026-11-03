@@ -100,7 +100,8 @@
   {
     "name": "Netflix TechBlog",
     "url": "https://netflixtechblog.com/feed",
-    "mode": "select"
+    "mode": "select",
+    "feed_content": true
   },
   {
     "name": "GitHub Engineering",

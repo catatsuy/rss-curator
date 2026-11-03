@@ -66,6 +66,9 @@ func hasJapaneseArticle(a Article, target string) bool {
 }
 
 func (r *runner) processFeedItem(ctx context.Context, f Feed, item *gofeed.Item, raw, mime string, keys []string) error {
+	if f.FeedContent && strings.TrimSpace(item.Content) != "" && mime == "" {
+		return r.processWithContent(ctx, f.Name, f.Mode, raw, item.Title, mime, "", keys, item.Content)
+	}
 	english := openAIEnglishURL(raw)
 	if !f.OpenAIJapanese || f.URL != openAIFeedURL || f.Mode != "select" || english == "" || mime != "" || r.dry {
 		return r.process(ctx, f.Name, f.Mode, raw, item.Title, mime, "", keys)

@@ -24,6 +24,7 @@ type Feed struct {
 	Mode           string `json:"mode"`
 	PathSuffix     string `json:"path_suffix,omitempty"`
 	OpenAIJapanese bool   `json:"openai_japanese,omitempty"`
+	FeedContent    bool   `json:"feed_content,omitempty"`
 	HTTPWorkaround bool   `json:"http_workaround,omitempty"`
 }
 
@@ -197,6 +198,10 @@ func (r *runner) deliver(e Entry, payload string) error {
 	return nil
 }
 func (r *runner) process(ctx context.Context, source, mode, raw, title, mime, intro string, keys []string) error {
+	return r.processWithContent(ctx, source, mode, raw, title, mime, intro, keys, "")
+}
+
+func (r *runner) processWithContent(ctx context.Context, source, mode, raw, title, mime, intro string, keys []string, content string) error {
 	if r.dry {
 		u, e := normalize(raw)
 		if e != nil {
@@ -227,7 +232,18 @@ func (r *runner) process(ctx context.Context, source, mode, raw, title, mime, in
 		}
 		r.state.Aliases[marker] = keys[0]
 	}
-	a, e := r.fetchArticle(ctx, raw, title, mime)
+	var a Article
+	var e error
+	if content != "" && mime == "" {
+		u, err := normalize(raw)
+		if err != nil {
+			return err
+		}
+		req, _ := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+		a, e = readArticleResponse(Article{Title: title, URL: u}, &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Request: req, Body: io.NopCloser(strings.NewReader(content))})
+	} else {
+		a, e = r.fetchArticle(ctx, raw, title, mime)
+	}
 	if errors.Is(e, errFetchDeferred) {
 		return nil
 	}
