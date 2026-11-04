@@ -2799,6 +2799,7 @@
     "a00923bf4ddda715364788a2da3f2ff96c940524eada89a0c5609e53d1b669fd": "2026-10-25T01:38:45.135759269Z",
     "a00fc889a2dd293b42049381f3a99cbbead2f5c6d3c52e4e209b3057ea2e2a3b": "2026-10-25T01:38:45.135852163Z",
     "a019a961c8213b9efeb2ef12c6ea3cd8489f70660ebc5751485f5c6213cf7c60": "2026-10-25T01:38:45.137520817Z",
+    "a022be53a349989d2b1639f737c18eaf510e00ed9444ad7f813d1f53d87226ec": "2026-11-04T01:31:35.423617193Z",
     "a028cc7ae9bd695cb41dc7e2ea925aadfe1c0cc88ed50dd7ad50f9575de5f80e": "2026-10-25T01:38:45.138191162Z",
     "a04d57070e9b202e388d3b14dc47b80b186ffe02d5092371bb6231384b58d44c": "2026-10-25T01:38:45.136832387Z",
     "a054d92d013b7b7075e9f95b8a7d314f150ef20a9cab69c6b84505db7c720ed3": "2026-11-02T06:17:11.061821173Z",
@@ -5149,10 +5150,12 @@
     "a022be53a349989d2b1639f737c18eaf510e00ed9444ad7f813d1f53d87226ec": {
       "method": "http",
       "last_failure": "extraction_failed",
-      "attempts": 2,
-      "failures": 2,
-      "last_attempt": "2026-11-03T12:00:50.082384268Z",
-      "last_seen": "2026-11-04T01:31:31.418209051Z"
+      "attempts": 3,
+      "failures": 3,
+      "last_attempt": "2026-11-04T01:31:35.423617193Z",
+      "last_seen": "2026-11-04T01:31:35.423617193Z",
+      "stopped": true,
+      "stop_reason": "fetch_failure_limit"
     },
     "a6f11660beafea0f6d576d7505b5203850cde2a7feedb433eea8e1e0aea7e139": {
       "method": "http",
