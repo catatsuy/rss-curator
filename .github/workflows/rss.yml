@@ -1,8 +1,8 @@
 name: RSSの選別とSlack投稿
 on:
   schedule:
-    # JST 07:17 / 10:17 / 13:17 / 19:17。米国の前日の更新を朝に拾う。
-    - cron: '17 1,4,10,22 * * *'
+    # 毎時37分（UTC/JST共通）。scheduleの遅延・欠落に備えて確認機会を増やす。
+    - cron: '37 * * * *'
   workflow_dispatch:
     inputs:
       dry_run:
