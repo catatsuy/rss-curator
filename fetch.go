@@ -15,6 +15,7 @@ import (
 
 const (
 	fetchHTTP            = "http"
+	fetchJA4             = "ja4"
 	fetchCrawlbase       = "crawlbase"
 	crawlbaseEndpoint    = "https://api.crawlbase.com/"
 	maxCrawlbaseFailures = 3
@@ -28,7 +29,7 @@ type FetchState struct {
 	Method               string    `json:"method"`
 	LastFailure          string    `json:"last_failure,omitempty"`
 	Attempts             int       `json:"attempts"`
-	Failures             int       `json:"failures,omitempty"`
+	Failures             int       `json:"failures"`
 	CrawlbaseAttempts    int       `json:"crawlbase_attempts,omitempty"`
 	CrawlbaseFailures    int       `json:"crawlbase_failures,omitempty"`
 	LastAttempt          time.Time `json:"last_attempt,omitzero"`
@@ -120,32 +121,45 @@ type crawlResult struct {
 }
 
 func (c *crawlbaseClient) fetch(ctx context.Context, target, title string) (Article, crawlResult, error) {
-	return c.fetchRedirects(ctx, target, title, map[string]bool{})
+	resp, result, err := c.fetchResponse(ctx, target, map[string]bool{})
+	a := Article{Title: title, URL: target}
+	if err != nil {
+		return a, result, err
+	}
+	a, err = readArticleResponse(a, resp)
+	if errors.Is(err, errBotChallenge) {
+		result.Reason = "bot_challenge"
+		result.Permanent = true
+	} else if errors.Is(err, errNoArticleContent) {
+		result.Reason = "no_article_content"
+	} else if err != nil {
+		result.Reason = "extraction_failed"
+	}
+	return a, result, err
 }
 
-func (c *crawlbaseClient) fetchRedirects(ctx context.Context, target, title string, visited map[string]bool) (Article, crawlResult, error) {
+func (c *crawlbaseClient) fetchResponse(ctx context.Context, target string, visited map[string]bool) (*http.Response, crawlResult, error) {
 	result := crawlResult{}
-	a := Article{Title: title, URL: target}
 	if visited[target] || len(visited) >= 10 {
 		result.Reason = "crawlbase_redirect_loop"
-		return a, result, fmt.Errorf("Crawlbaseの転送が循環、または10回を超えました")
+		return nil, result, fmt.Errorf("Crawlbaseの転送が循環、または10回を超えました")
 	}
 	if len(visited) > 0 && c.used >= c.limit {
 		result.Reason = "crawlbase_limit"
-		return a, result, errFetchDeferred
+		return nil, result, errFetchDeferred
 	}
 	visited[target] = true
 	q := url.Values{"token": {c.token}, "url": {target}, "get_headers": {"true"}}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, crawlbaseEndpoint+"?"+q.Encode(), nil)
 	if err != nil {
 		result.Reason = "crawlbase_request"
-		return a, result, fmt.Errorf("Crawlbaseのリクエストを作成できません")
+		return nil, result, fmt.Errorf("Crawlbaseのリクエストを作成できません")
 	}
 	c.used++
 	resp, err := c.client.Do(req)
 	if err != nil {
 		result.Reason = "crawlbase_transport"
-		return a, result, fmt.Errorf("Crawlbaseへの接続に失敗しました")
+		return nil, result, fmt.Errorf("Crawlbaseへの接続に失敗しました")
 	}
 	result.HTTPStatus = resp.StatusCode
 	result.CBStatus, _ = strconv.Atoi(resp.Header.Get("cb_status"))
@@ -166,10 +180,10 @@ func (c *crawlbaseClient) fetchRedirects(ctx context.Context, target, title stri
 		u, err := url.Parse(next)
 		if err != nil || next == "" || strings.EqualFold(u.Hostname(), "api.crawlbase.com") || excludedArticleURL(next) != "" {
 			result.Reason = "crawlbase_redirect_invalid"
-			return a, result, fmt.Errorf("Crawlbaseの転送先URLが不正です")
+			return nil, result, fmt.Errorf("Crawlbaseの転送先URLが不正です")
 		}
 		slog.Info("Crawlbaseの記事転送", "url", safeArticleURL(target), "next_url", safeArticleURL(next), "original_status", result.OriginalStatus, "crawlbase_requests", c.used)
-		return c.fetchRedirects(ctx, next, title, visited)
+		return c.fetchResponse(ctx, next, visited)
 	}
 	// 520は、対象サイトの取得失敗を伝えるAPIのHTTPステータスにも使われる。
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == 520 {
@@ -217,7 +231,7 @@ func (c *crawlbaseClient) fetchRedirects(ctx context.Context, target, title stri
 	}
 	if result.Reason != "success" {
 		resp.Body.Close()
-		return a, result, fmt.Errorf("Crawlbaseの取得に失敗しました（HTTP %d、cb_status %d、original_status %d）", result.HTTPStatus, result.CBStatus, result.OriginalStatus)
+		return nil, result, fmt.Errorf("Crawlbaseの取得に失敗しました（HTTP %d、cb_status %d、original_status %d）", result.HTTPStatus, result.CBStatus, result.OriginalStatus)
 	}
 	final := target
 	if candidate, e := normalize(resp.Header.Get("url")); e == nil {
@@ -233,11 +247,7 @@ func (c *crawlbaseClient) fetchRedirects(ctx context.Context, target, title stri
 	if typ := resp.Header.Get("original_header_content-type"); typ != "" {
 		resp.Header.Set("Content-Type", typ)
 	}
-	a, err = readArticleResponse(a, resp)
-	if err != nil {
-		result.Reason = "extraction_failed"
-	}
-	return a, result, err
+	return resp, result, nil
 }
 
 func isArticleRedirect(status int) bool {
@@ -312,11 +322,12 @@ func safeArticleURL(raw string) string {
 	return u.String()
 }
 
+// 1回の試行内で通常HTTP → JA4 → Crawlbaseの順に取得する。
 func (r *runner) fetchArticle(ctx context.Context, raw, title, mime string) (Article, error) {
 	return r.fetchArticleWithPolicy(ctx, raw, title, mime, false)
 }
 
-// 任意の日本語版の確認では、不在を既読や取得断念通知にしない。
+// 任意の日本語版の不在は、既読や取得断念通知にしない。
 func (r *runner) fetchArticleWithPolicy(ctx context.Context, raw, title, mime string, optional bool) (Article, error) {
 	notify := func(u string) error {
 		if optional {
@@ -347,8 +358,8 @@ func (r *runner) fetchArticleWithPolicy(ctx context.Context, raw, title, mime st
 	parsed, _ := url.Parse(u)
 	host := hash(parsed.Hostname())
 	f := r.state.Fetch[id]
-	if f.Method == "" {
-		f.Method = fetchHTTP
+	if f.Method == "" || f.Method == fetchHTTP {
+		f.Method = r.initialFetchMethod()
 	}
 	f.LastSeen = now
 	result := crawlResult{}
@@ -412,20 +423,8 @@ func (r *runner) fetchArticleWithPolicy(ctx context.Context, raw, title, mime st
 		return deferFetch("retry_wait")
 	}
 	if method == fetchCrawlbase {
-		if r.crawlbase == nil || r.crawlbase.token == "" {
-			return deferFetch("crawlbase_unconfigured")
-		}
-		if r.crawlbase.disabled {
-			return deferFetch("crawlbase_disabled")
-		}
-		if now.Before(r.state.CrawlbaseRetryAfter) {
-			if r.state.CrawlbaseRetryAfter.After(f.NextAttempt) {
-				f.NextAttempt = r.state.CrawlbaseRetryAfter
-			}
-			return deferFetch("crawlbase_cooldown")
-		}
-		if r.crawlbase.used >= r.crawlbase.limit {
-			return deferFetch("crawlbase_limit")
+		if reason := r.crawlbaseUnavailable(now); reason != "" {
+			return deferFetch(reason)
 		}
 	}
 	r.fetchAttempted[id] = true
@@ -433,67 +432,114 @@ func (r *runner) fetchArticleWithPolicy(ctx context.Context, raw, title, mime st
 	f.LastAttempt = now
 	f.NextAttempt = time.Time{}
 	var a Article
-	if method == fetchCrawlbase {
-		f.CrawlbaseAttempts++
-		a, result, err = r.crawlbase.fetch(ctx, u, title)
-		if errors.Is(err, errFetchDeferred) {
-			return deferFetch(result.Reason)
-		}
-		if err != nil {
-			f.CrawlbaseFailures++
-			f.LastFailure = result.Reason
-			if result.Permanent || f.CrawlbaseFailures >= maxCrawlbaseFailures {
-				f.Stopped = true
-				markStopped(id, now)
-			} else {
-				f.NextAttempt = now.Add(rateLimitWait)
-			}
-			if result.RateLimited || result.ServiceLimited {
-				until := retryAfter(result.RetryAfter, now)
-				if result.ServiceLimited {
-					r.state.CrawlbaseRetryAfter = until
-				} else {
-					r.state.HostRetryAfter[host] = until
+	for {
+		method = f.Method
+		result = crawlResult{}
+		if method == fetchCrawlbase {
+			if reason := r.crawlbaseUnavailable(now); reason != "" {
+				if r.state.CrawlbaseRetryAfter.After(f.NextAttempt) {
+					f.NextAttempt = r.state.CrawlbaseRetryAfter
 				}
-				if !f.Stopped && until.After(f.NextAttempt) {
-					f.NextAttempt = until
+				if saveErr := r.saveFetch(id, f); saveErr != nil {
+					return Article{}, saveErr
 				}
+				return deferFetch(reason)
 			}
-		} else {
-			f.LastFailure = ""
-			f.CrawlbaseFailures = 0
-		}
-	} else {
-		a, err = fetchArticle(ctx, r.client, u, title, mime)
-		result.HTTPStatus = a.httpStatus
-		if err != nil {
-			f.LastFailure = "http_transport"
-			var status *articleHTTPError
-			if errors.As(err, &status) {
-				result.HTTPStatus = status.Status
-				f.LastFailure = fmt.Sprintf("http_%d", status.Status)
-				switch status.Status {
-				case 403:
-					f.Method = fetchCrawlbase
-				case 429:
-					f.Method = fetchCrawlbase
-					f.NextAttempt = retryAfter(status.RetryAfter, now)
-					r.state.HostRetryAfter[host] = f.NextAttempt
-					r.state.HostRetryAfter[hash(status.Host)] = f.NextAttempt
-				case 401, 404, 410:
+			f.CrawlbaseAttempts++
+			a, result, err = r.crawlbase.fetch(ctx, u, title)
+			if errors.Is(err, errFetchDeferred) {
+				if saveErr := r.saveFetch(id, f); saveErr != nil {
+					return Article{}, saveErr
+				}
+				return deferFetch(result.Reason)
+			}
+			if errors.Is(err, errNoArticleContent) {
+				break
+			}
+			if err != nil {
+				f.CrawlbaseFailures++
+				f.LastFailure = result.Reason
+				if result.Permanent || f.CrawlbaseFailures >= maxCrawlbaseFailures {
 					f.Stopped = true
 					markStopped(id, now)
+				} else {
+					f.NextAttempt = now.Add(rateLimitWait)
 				}
-			} else if a.httpStatus >= 200 && a.httpStatus < 300 {
-				f.LastFailure = "extraction_failed"
+				if result.RateLimited || result.ServiceLimited {
+					until := retryAfter(result.RetryAfter, now)
+					if result.ServiceLimited {
+						r.state.CrawlbaseRetryAfter = until
+					} else {
+						r.state.HostRetryAfter[host] = until
+					}
+					if !f.Stopped && until.After(f.NextAttempt) {
+						f.NextAttempt = until
+					}
+				}
+			} else {
+				f.LastFailure = ""
+				f.CrawlbaseFailures = 0
 			}
-			result.Reason = f.LastFailure
-		} else {
+			break
+		}
+		client := r.client
+		if method == fetchJA4 {
+			client, err = r.browserClient()
+		}
+		if method != fetchJA4 || err == nil {
+			a, err = fetchArticle(ctx, client, u, title, mime)
+		}
+		result.HTTPStatus = a.httpStatus
+		if err == nil {
 			f.LastFailure = ""
 			result.Reason = "success"
+			break
 		}
+		if errors.Is(err, errNoArticleContent) {
+			break
+		}
+		f.LastFailure = "http_transport"
+		var status *articleHTTPError
+		if errors.As(err, &status) {
+			result.HTTPStatus = status.Status
+			f.LastFailure = fmt.Sprintf("http_%d", status.Status)
+			switch status.Status {
+			case 429:
+				f.Method = fetchJA4
+				if method == fetchJA4 {
+					f.Method = fetchCrawlbase
+				}
+				f.NextAttempt = retryAfter(status.RetryAfter, now)
+				r.state.HostRetryAfter[host] = f.NextAttempt
+				r.state.HostRetryAfter[hash(status.Host)] = f.NextAttempt
+			case 401, 404, 410, 451:
+				f.Stopped = true
+				markStopped(id, now)
+			}
+		} else if errors.Is(err, errBotChallenge) {
+			f.LastFailure = "bot_challenge"
+		}
+		result.Reason = f.LastFailure
+		if f.Stopped || !f.NextAttempt.IsZero() || ctx.Err() != nil {
+			break
+		}
+		next := fetchJA4
+		if method == fetchJA4 {
+			next = fetchCrawlbase
+		}
+		slog.Info("記事取得のフォールバック", "url", safeArticleURL(u), "method", method, "next_method", next, "http_status", result.HTTPStatus, "reason", result.Reason)
+		f.Method = next
 	}
-	if err != nil {
+	if errors.Is(err, errNoArticleContent) {
+		f.Stopped = true
+		f.StopReason = "no_article_content"
+		f.FailureNoticePending = false
+		f.Failures = 0
+		f.LastFailure = ""
+		f.NextAttempt = time.Time{}
+		result.Reason = "no_article_content"
+		markStopped(id, now)
+	} else if err != nil {
 		f.Failures++
 		if f.Failures >= maxFailures && !f.Stopped {
 			f.Stopped = true
@@ -506,19 +552,18 @@ func (r *runner) fetchArticleWithPolicy(ctx context.Context, raw, title, mime st
 	}
 	if err == nil {
 		outcome = "success"
+	} else if f.StopReason == "no_article_content" {
+		outcome = "skipped"
 	} else if f.Stopped {
 		outcome = "stopped"
 	} else {
 		outcome = "retry"
 	}
-	if err != nil && f.Stopped {
+	if err != nil && f.Stopped && f.StopReason != "no_article_content" {
 		f.FailureNoticePending = !optional
 		if f.StopReason == "" {
 			f.StopReason = f.LastFailure
 		}
-	}
-	if optional {
-		f.FailureNoticePending = false
 	}
 	r.state.Fetch[id] = f
 	// API・Slackの処理より前に取得状態をローカル保存する。シェルが従来どおりpushする。
@@ -528,5 +573,32 @@ func (r *runner) fetchArticleWithPolicy(ctx context.Context, raw, title, mime st
 	if noticeErr := notify(u); noticeErr != nil {
 		return Article{}, noticeErr
 	}
+	if f.StopReason == "no_article_content" {
+		return Article{}, errFetchDeferred
+	}
 	return a, err
+}
+
+func (r *runner) saveFetch(id string, f FetchState) error {
+	r.state.Fetch[id] = f
+	if err := r.save(); err != nil {
+		return fmt.Errorf("%w: %v", errDelivery, err)
+	}
+	return nil
+}
+
+func (r *runner) crawlbaseUnavailable(now time.Time) string {
+	if r.crawlbase == nil || r.crawlbase.token == "" {
+		return "crawlbase_unconfigured"
+	}
+	if r.crawlbase.disabled {
+		return "crawlbase_disabled"
+	}
+	if now.Before(r.state.CrawlbaseRetryAfter) {
+		return "crawlbase_cooldown"
+	}
+	if r.crawlbase.used >= r.crawlbase.limit {
+		return "crawlbase_limit"
+	}
+	return ""
 }

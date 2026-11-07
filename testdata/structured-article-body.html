@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Protocol implementation update</title></head>
+<body>
+  <nav><a href="/">Home</a> | <a href="/news">News</a></nav>
+  <h1>Protocol implementation update</h1>
+  <div class="node node--promoted view-mode-full">
+    <div class="field field--name-body field--type-text-with-summary field--label-hidden">
+      <div class="field__items"><div class="field__item">
+        <p>Protocol version 2.1 introduces a bounded queue for incoming requests.
+        Each connection has an independent queue, and the server rejects new work
+        when that queue reaches its configured capacity. This prevents one slow
+        client from consuming all of the worker slots available to other clients.</p>
+        <p>The implementation keeps response buffers until the receiving client
+        acknowledges the corresponding sequence number. A timeout releases those
+        buffers and closes the connection. Operators can adjust the timeout based
+        on observed network latency, while the queue limit remains fixed for the
+        lifetime of each connection.</p>
+        <p>The <a href="/docs/protocol">protocol documentation</a> describes the
+        message format and the measurements used to choose the default limits.</p>
+      </div></div>
+    </div>
+  </div>
+  <footer>Newsletter signup <a href="/subscribe">Subscribe</a></footer>
+</body>
+</html>

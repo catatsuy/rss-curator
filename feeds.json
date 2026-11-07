@@ -90,7 +90,7 @@
     "url": "https://openai.com/news/rss.xml",
     "mode": "select",
     "openai_japanese": true,
-    "http_workaround": true
+    "skip_http": true
   },
   {
     "name": "APNIC Blog",

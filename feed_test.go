@@ -60,3 +60,23 @@ func TestFeedPathSuffix(t *testing.T) {
 		}
 	}
 }
+
+func TestSkipHTTPConfig(t *testing.T) {
+	for _, option := range []string{"", `,"skip_http":false`, `,"skip_http":true`} {
+		path := filepath.Join(t.TempDir(), "feeds.json")
+		mustWrite(t, path, `[{"name":"Source","url":"https://example.com/feed","mode":"select"`+option+`}]`)
+		feeds, err := readFeeds(path)
+		if err != nil || feeds[0].SkipHTTP != (option == `,"skip_http":true`) {
+			t.Fatal(feeds, err)
+		}
+	}
+	feeds, err := readFeeds("feeds.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, feed := range feeds {
+		if feed.SkipHTTP != (feed.Name == "OpenAI") {
+			t.Fatal("通常HTTP省略の既定設定が不正です", feed)
+		}
+	}
+}

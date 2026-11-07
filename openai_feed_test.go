@@ -83,8 +83,19 @@ func openAITestItem() *gofeed.Item {
 	return &gofeed.Item{Title: "Technical article", Link: openAITestEnglish, GUID: "openai-test", Description: "RSS_SUMMARY: 本文の紹介 TLS implementation and benchmarks"}
 }
 
+func setOpenAITestBrowserClient(r *runner) {
+	if r.workaroundClient == nil {
+		r.workaroundClient = &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			request := req.Clone(req.Context())
+			request.Header.Set("User-Agent", browserSourceUserAgent)
+			return r.client.Transport.RoundTrip(request)
+		}), CheckRedirect: r.client.CheckRedirect}
+	}
+}
+
 func processOpenAITestItem(r *runner, item *gofeed.Item) error {
-	f := Feed{Name: "OpenAI", URL: openAIFeedURL, Mode: "select", OpenAIJapanese: true}
+	setOpenAITestBrowserClient(r)
+	f := Feed{Name: "OpenAI", URL: openAIFeedURL, Mode: "select", OpenAIJapanese: true, SkipHTTP: true}
 	return r.processFeedItem(context.Background(), f, item, item.Link, "", itemKeys(f, item))
 }
 
@@ -144,6 +155,7 @@ func TestOpenAIJapaneseSelection(t *testing.T) {
 				}
 				return nil
 			}
+			setOpenAITestBrowserClient(r)
 			item := openAITestItem()
 			var err error
 			if kind == "other-feed" || kind == "option-disabled" {
@@ -221,45 +233,31 @@ func TestOpenAIProbeRetryPolicy(t *testing.T) {
 	for _, status := range []int{403, 429, 500} {
 		t.Run(fmt.Sprint(status), func(t *testing.T) {
 			ai, decisions, summaries := testAI(t)
-			r := testRunner(t, ai)
-			now := time.Date(2026, 10, 24, 0, 0, 0, 0, time.UTC)
-			r.now = func() time.Time { return now }
-			calls := 0
-			r.client = &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-				calls++
+			r := fetchTestRunner(t, func(req *http.Request) (*http.Response, error) {
+				if req.URL.Hostname() == "api.crawlbase.com" {
+					return fetchResponse(req, 200, japaneseHTML(openAITestEnglish), map[string]string{"cb_status": "200", "original_status": "200", "url": openAITestJapanese}), nil
+				}
 				if req.URL.String() != openAITestJapanese {
-					t.Fatal("英語本文へ早すぎるフォールバック")
+					t.Fatal("日本語版確認中に英語本文を取得しました")
 				}
 				return fetchResponse(req, status, "", nil), nil
-			})}
-			r.crawlbase = &crawlbaseClient{client: &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-				return fetchResponse(req, 200, japaneseHTML(openAITestEnglish), map[string]string{"cb_status": "200", "original_status": "200", "url": openAITestJapanese}), nil
-			})}, token: "test", limit: 5}
+			})
+			r.ai = ai
 			posts := 0
 			r.post = func(_, _ string) error { posts++; return nil }
 			err := processOpenAITestItem(r, openAITestItem())
-			if errors.Is(err, errDelivery) || posts != 0 || *summaries != 0 || r.state.done([]string{hash(openAITestEnglish), hash(openAITestJapanese)}) {
-				t.Fatal("確認失敗で既読・投稿しました", err)
-			}
-			if status == 500 {
-				return
-			}
 			if status == 429 {
-				before := *decisions
-				if err := processOpenAITestItem(r, openAITestItem()); err != nil || *decisions != before {
-					t.Fatal("待機中に興味判定を繰り返しました", err)
+				if errors.Is(err, errDelivery) || posts != 0 || *decisions != 0 {
+					t.Fatal(err, posts, *decisions)
 				}
+				if err = processOpenAITestItem(r, openAITestItem()); err != nil || *decisions != 0 {
+					t.Fatal("待機中にAPIを呼びました", err)
+				}
+				r = restartFetcher(t, r, 2*time.Hour)
+				err = processOpenAITestItem(r, openAITestItem())
 			}
-			if calls == 0 || r.state.Fetch[hash(openAITestJapanese)].Method != fetchCrawlbase {
-				t.Fatal("Crawlbaseへの切り替えがありません")
-			}
-			now = now.Add(2 * time.Hour)
-			r.fetchAttempted = nil
-			if err := processOpenAITestItem(r, openAITestItem()); err != nil {
-				t.Fatal(err)
-			}
-			if posts != 1 || *summaries != 0 || r.crawlbase.used != 1 {
-				t.Fatal("代替取得後の日本語投稿が不正")
+			if err != nil || posts != 1 || *summaries != 0 || r.crawlbase.used != 1 {
+				t.Fatal("代替取得後の日本語投稿が不正", err, posts, *summaries, r.crawlbase.used)
 			}
 		})
 	}
@@ -400,13 +398,16 @@ func TestOpenAIProbeFailureDoesNotCompleteEnglish(t *testing.T) {
 	})}
 	posts := 0
 	r.post = func(_, _ string) error { posts++; return nil }
-	if err := processOpenAITestItem(r, openAITestItem()); err == nil {
-		t.Fatal("英語版の一時障害が失われました")
+	if err := processOpenAITestItem(r, openAITestItem()); err != nil || r.state.Fetch[hash(openAITestEnglish)].Method != fetchCrawlbase {
+		t.Fatal("英語版の再試行が失われました", err)
 	}
 	if posts != 0 || *summaries != 0 || r.state.done([]string{hash(openAITestEnglish), hash(openAITestJapanese)}) {
 		t.Fatal("日本語版の404で英語版も既読になりました")
 	}
 	englishStatus = 200
+	r.crawlbase = &crawlbaseClient{token: "test", limit: 5, client: &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		return goodCrawlResponse(req, fixtureHTML("English", "")), nil
+	})}}
 	r.fetchAttempted = nil
 	if err := processOpenAITestItem(r, openAITestItem()); err != nil {
 		t.Fatal(err)

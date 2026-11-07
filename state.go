@@ -37,9 +37,17 @@ func loadState(path string) (*State, error) {
 	if s.Processed == nil || s.Initialized == nil || s.Aliases == nil {
 		return nil, fmt.Errorf("状態の必須項目がありません")
 	}
-	// 旧形式で取得失敗中だった記事は、それまでの試行回数を引き継ぐ。
+	// failuresが存在しない旧形式だけ、失敗中の試行回数を引き継ぐ。
+	var legacy struct {
+		Fetch map[string]struct {
+			Failures *int `json:"failures"`
+		} `json:"fetch"`
+	}
+	if e = json.Unmarshal(b, &legacy); e != nil {
+		return nil, e
+	}
 	for id, f := range s.Fetch {
-		if f.Failures == 0 && f.LastFailure != "" {
+		if legacy.Fetch[id].Failures == nil && f.LastFailure != "" {
 			f.Failures = f.Attempts
 			s.Fetch[id] = f
 		}

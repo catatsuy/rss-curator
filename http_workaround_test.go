@@ -10,38 +10,10 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
-	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
 )
-
-func TestHTTPWorkaroundConfig(t *testing.T) {
-	for _, flag := range []string{"", `,"http_workaround":false`, `,"http_workaround":true`} {
-		path := filepath.Join(t.TempDir(), "feeds.json")
-		mustWrite(t, path, `[{"name":"Source","url":"https://example.com/feed","mode":"select"`+flag+`}]`)
-		feeds, err := readFeeds(path)
-		if err != nil || feeds[0].HTTPWorkaround != (flag == `,"http_workaround":true`) {
-			t.Fatal("回避フラグが正しく読み込まれません", feeds, err)
-		}
-	}
-	feeds, err := readFeeds("feeds.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	enabled := 0
-	for _, feed := range feeds {
-		if feed.HTTPWorkaround {
-			enabled++
-			if feed.Name != "OpenAI" {
-				t.Fatal("他のフィードにも回避処理が有効です")
-			}
-		}
-	}
-	if enabled != 1 {
-		t.Fatal("OpenAIだけで有効になっていません")
-	}
-}
 
 func TestHTTPWorkaroundPreservesNormalClient(t *testing.T) {
 	base := http.DefaultTransport.(*http.Transport).Clone()
@@ -177,5 +149,36 @@ func TestHTTPWorkaroundTLSVerification(t *testing.T) {
 				t.Fatal("TLS接続後のRSS取得に失敗しました")
 			}
 		})
+	}
+}
+
+func TestAutomaticTLSFallback(t *testing.T) {
+	normal, browser := 0, 0
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.Header.Get("User-Agent") != browserSourceUserAgent {
+			normal++
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		browser++
+		if req.ProtoMajor != 1 || req.TLS.NegotiatedProtocol != "http/1.1" {
+			t.Errorf("JA4経路のHTTPとALPNが不正: %s %q", req.Proto, req.TLS.NegotiatedProtocol)
+		}
+		fmt.Fprint(w, fixtureHTML("Article", ""))
+	}))
+	server.EnableHTTP2 = true
+	server.TLS = &tls.Config{NextProtos: []string{"h2", "http/1.1"}}
+	server.StartTLS()
+	defer server.Close()
+	r := testRunner(t, nil)
+	r.client = server.Client()
+	defer func() {
+		if r.workaroundClient != nil {
+			r.workaroundClient.CloseIdleConnections()
+		}
+	}()
+	a, err := r.fetchArticle(context.Background(), server.URL+"/article", "", "")
+	if err != nil || a.Markdown == "" || normal != 2 || browser != 2 || r.state.Fetch[hash(server.URL+"/article")].Method != fetchJA4 {
+		t.Fatal("通常TLSからuTLSへ切り替えできません", err, normal, browser)
 	}
 }

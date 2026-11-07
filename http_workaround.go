@@ -12,7 +12,7 @@ import (
 	utls "github.com/refraction-networking/utls"
 )
 
-// 明示的なフラグでのみ使用する。通常のHTTP/TLS設定には混ぜない。
+// 通常取得が失敗した場合のブラウザ型TLS接続。元のクライアントを変更しない。
 func newHTTPWorkaroundClient(client *http.Client, host string) (*http.Client, error) {
 	normal := client.Transport
 	if normal == nil {
@@ -115,7 +115,9 @@ type httpWorkaroundTransport struct {
 
 func (t *httpWorkaroundTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	host := strings.ToLower(req.URL.Hostname())
-	if host == t.host || strings.HasSuffix(host, "."+t.host) {
+	if t.host == "" || host == t.host || strings.HasSuffix(host, "."+t.host) {
+		req = req.Clone(req.Context())
+		req.Header.Set("User-Agent", browserSourceUserAgent)
 		return t.workaround.RoundTrip(req)
 	}
 	return t.normal.RoundTrip(req)

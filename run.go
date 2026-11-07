@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/mmcdole/gofeed"
+	"golang.org/x/net/html"
 )
 
 type Feed struct {
@@ -25,7 +26,7 @@ type Feed struct {
 	PathSuffix     string `json:"path_suffix,omitempty"`
 	OpenAIJapanese bool   `json:"openai_japanese,omitempty"`
 	FeedContent    bool   `json:"feed_content,omitempty"`
-	HTTPWorkaround bool   `json:"http_workaround,omitempty"`
+	SkipHTTP       bool   `json:"skip_http,omitempty"`
 }
 
 func (f Feed) includes(raw string) bool {
@@ -48,6 +49,8 @@ type Manifest struct {
 	Articles []Entry `json:"articles"`
 }
 type runner struct {
+	skipHTTP          bool
+	workaroundClient  *http.Client
 	client            *http.Client
 	ai                *AI
 	state             *State
@@ -100,17 +103,25 @@ func fetchFeed(ctx context.Context, c *http.Client, u string) (*gofeed.Feed, err
 	if e != nil {
 		return nil, e
 	}
-	resp, e := doSourceRequest(c, req)
+	resp, e := c.Do(req)
 	if e != nil {
 		return nil, fmt.Errorf("RSSを取得できません")
 	}
+	return readFeedResponse(resp)
+}
+
+func readFeedResponse(resp *http.Response) (*gofeed.Feed, error) {
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("RSSのHTTPステータス: %d", resp.StatusCode)
+		return nil, fmt.Errorf("RSSを取得できません: %w", newArticleHTTPError(resp))
 	}
 	b, e := io.ReadAll(io.LimitReader(resp.Body, (10<<20)+1))
 	if e != nil || len(b) > 10<<20 {
 		return nil, fmt.Errorf("RSSの読み込みに失敗、または10MiBを超えています")
+	}
+	doc, _ := html.Parse(strings.NewReader(string(b)))
+	if isBotChallenge(resp, doc) {
+		return nil, errBotChallenge
 	}
 	f, e := gofeed.NewParser().ParseString(string(b))
 	if e != nil {
@@ -358,18 +369,14 @@ func runWithDelivery(ctx context.Context, config, statePath, output string, dry 
 		r.post = post
 		r.checkpoint = checkpoint
 	}
-	normalClient := r.client
-	for _, f := range feeds {
-		r.client = normalClient
-		if f.HTTPWorkaround {
-			parsed, _ := url.Parse(f.URL)
-			r.client, e = newHTTPWorkaroundClient(normalClient, parsed.Hostname())
-			if e != nil {
-				return e
-			}
-			defer r.client.CloseIdleConnections()
+	defer func() {
+		if r.workaroundClient != nil {
+			r.workaroundClient.CloseIdleConnections()
 		}
-		feed, e := fetchFeed(ctx, r.client, f.URL)
+	}()
+	for _, f := range feeds {
+		r.skipHTTP = f.SkipHTTP
+		feed, e := r.fetchFeed(ctx, f.URL)
 		if e != nil {
 			slog.Error("RSSの処理に失敗しました", "情報源", f.Name, "エラー", e)
 			continue

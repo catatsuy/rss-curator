@@ -29,6 +29,11 @@ func fetchTestRunner(t *testing.T, transport roundTripFunc) *runner {
 	t.Helper()
 	r := testRunner(t, nil)
 	r.client = &http.Client{Transport: transport, Timeout: time.Second}
+	r.workaroundClient = &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		req = req.Clone(req.Context())
+		req.Header.Set("User-Agent", browserSourceUserAgent)
+		return transport(req)
+	}), Timeout: time.Second}
 	r.now = func() time.Time { return time.Date(2026, 10, 18, 1, 0, 0, 0, time.UTC) }
 	r.crawlbase = &crawlbaseClient{client: r.client, token: "private-crawlbase-token", limit: 5}
 	return r
@@ -73,8 +78,8 @@ func TestFetchHTTP200AndUnconfigured(t *testing.T) {
 	}
 }
 
-func TestFetch403NextRunAndProcessing(t *testing.T) {
-	normal, cb := 0, 0
+func TestFetch403FallbackAndProcessing(t *testing.T) {
+	normal, browser, cb := 0, 0, 0
 	r := fetchTestRunner(t, func(req *http.Request) (*http.Response, error) {
 		if req.URL.Hostname() == "api.crawlbase.com" {
 			cb++
@@ -83,40 +88,34 @@ func TestFetch403NextRunAndProcessing(t *testing.T) {
 			}
 			return goodCrawlResponse(req, fixtureHTML("記事", `<p><a href="/more">相対リンク</a></p>`)), nil
 		}
-		normal++
+		if req.Header.Get("User-Agent") == browserSourceUserAgent {
+			browser++
+		} else {
+			normal++
+		}
 		return fetchResponse(req, 403, "refused", nil), nil
 	})
 	u := "https://site.example/article"
 	id := hash(u)
-	if _, e := r.fetchArticle(context.Background(), u, "記事", ""); e == nil {
-		t.Fatal("403を成功扱い")
-	}
-	if cb != 0 || r.state.Fetch[id].Method != fetchCrawlbase || r.state.done([]string{id}) {
-		t.Fatal("次回予約が不正")
-	}
-	if _, e := r.fetchArticle(context.Background(), u, "記事", ""); !errors.Is(e, errFetchDeferred) || cb != 0 {
-		t.Fatal("同じ実行でCrawlbaseを使用", e)
-	}
-	next := restartFetcher(t, r, 0)
 	ai, ds, ss := testAI(t)
-	next.ai = ai
-	next.post = func(_, path string) error {
+	r.ai = ai
+	r.post = func(_, path string) error {
 		b, e := os.ReadFile(path)
 		if e != nil || !strings.Contains(string(b), "技術的な詳細") {
 			t.Error("通常の要約・投稿に到達しません", e)
 		}
 		return nil
 	}
-	if e := next.process(context.Background(), "source", "select", u, "記事", "", "紹介文", []string{id}); e != nil {
+	if e := r.process(context.Background(), "source", "select", u, "記事", "", "紹介文", []string{id}); e != nil {
 		t.Fatal(e)
 	}
-	if normal != 2 || cb != 1 || *ds != 1 || *ss != 1 || !next.state.done([]string{id}) {
-		t.Fatal(normal, cb, *ds, *ss)
+	if normal != 2 || browser != 2 || cb != 1 || *ds != 1 || *ss != 1 || !r.state.done([]string{id}) {
+		t.Fatal(normal, browser, cb, *ds, *ss)
 	}
-	if _, ok := next.state.Fetch[id]; ok {
+	if _, ok := r.state.Fetch[id]; ok {
 		t.Fatal("処理完了した取得状態が残っています")
 	}
-	if e := next.process(context.Background(), "source", "select", u, "記事", "", "", []string{id}); e != nil || cb != 1 {
+	if e := r.process(context.Background(), "source", "select", u, "記事", "", "", []string{id}); e != nil || cb != 1 {
 		t.Fatal("投稿済み記事を再取得", e)
 	}
 }
@@ -144,7 +143,7 @@ func TestFetch429RetryAfterAndHostCooldown(t *testing.T) {
 				wait = 2 * time.Hour
 			}
 			until := r.fetchTime().Add(wait)
-			if !r.state.Fetch[id].NextAttempt.Equal(until) || r.state.Fetch[id].Method != fetchCrawlbase {
+			if !r.state.Fetch[id].NextAttempt.Equal(until) || r.state.Fetch[id].Method != fetchJA4 {
 				t.Fatal(r.state.Fetch[id])
 			}
 			_, e = r.fetchArticle(context.Background(), "https://site.example/other", "別記事", "")
@@ -161,8 +160,12 @@ func TestFetch429RetryAfterAndHostCooldown(t *testing.T) {
 				t.Fatal("待機記事を失いました", e)
 			}
 			next = restartFetcher(t, r, wait)
-			if _, e = next.fetchArticle(context.Background(), u, "記事", ""); e != nil || cb != 1 || normal != 1 {
-				t.Fatal("期限後のCrawlbase取得", e, cb, normal)
+			if _, e = next.fetchArticle(context.Background(), u, "記事", ""); e == nil || cb != 0 || normal != 2 || next.state.Fetch[id].Method != fetchCrawlbase {
+				t.Fatal("期限後のJA4取得", e, cb, normal)
+			}
+			next = restartFetcher(t, next, wait)
+			if _, e = next.fetchArticle(context.Background(), u, "記事", ""); e != nil || cb != 1 || normal != 2 {
+				t.Fatal("JA4待機後のCrawlbase取得", e, cb, normal)
 			}
 		})
 	}
@@ -175,7 +178,7 @@ func TestFetchHTTPFailurePolicies(t *testing.T) {
 			r := fetchTestRunner(t, func(req *http.Request) (*http.Response, error) {
 				if req.URL.Hostname() == "api.crawlbase.com" {
 					cb++
-					t.Fatal("Crawlbase対象でない失敗です")
+					return fetchResponse(req, 503, "", nil), nil
 				}
 				calls++
 				if status == 0 {
@@ -199,15 +202,15 @@ func TestFetchHTTPFailurePolicies(t *testing.T) {
 					t.Fatal("恒久失敗を再取得", e)
 				}
 			} else {
-				if next.state.Fetch[id].Method != fetchHTTP || next.state.done([]string{id}) {
+				if next.state.Fetch[id].Method != fetchCrawlbase || next.state.done([]string{id}) {
 					t.Fatal("一時失敗の取得方法が不正")
 				}
 				_, _ = next.fetchArticle(context.Background(), u, "記事", "")
-				if calls != firstCalls*2 {
-					t.Fatal("次回に通常HTTPで再試行しません", calls)
+				if calls != firstCalls || cb != 2 {
+					t.Fatal("次回にCrawlbaseで再試行しません", calls)
 				}
 			}
-			if cb != 0 {
+			if permanent && cb != 0 {
 				t.Fatal(cb)
 			}
 		})
@@ -458,7 +461,7 @@ func TestFetchStateAcrossShellRuns(t *testing.T) {
 			t.Fatalf("run %d: %v %s", i, e, b)
 		}
 	}
-	if feedCalls != 2 || articleCalls != 2 {
+	if feedCalls != 2 || articleCalls != 4 {
 		t.Fatal("次の実行で通常HTTPを再試行しました", feedCalls, articleCalls)
 	}
 	raw := git(root, "--git-dir="+remote, "show", "rss-state:state.json")
@@ -531,7 +534,7 @@ func TestCrawlbaseZeroBudget(t *testing.T) {
 	}
 }
 
-func TestPostedDigestKeepsFetchRetry(t *testing.T) {
+func TestPostedDigestCompletesFallbackWithoutReposting(t *testing.T) {
 	normal, cb := 0, 0
 	r := fetchTestRunner(t, func(req *http.Request) (*http.Response, error) {
 		if req.URL.Hostname() == "api.crawlbase.com" {
@@ -545,15 +548,15 @@ func TestPostedDigestKeepsFetchRetry(t *testing.T) {
 	id := hash(u)
 	r.state.Processed[id] = r.fetchTime().Add(-24 * time.Hour)
 	r.state.Aliases[hash("digest\n"+id)] = id
-	if e := r.process(context.Background(), "newsletter", "digest", u, "記事", "", "", []string{id}); e == nil {
-		t.Fatal("通常HTTPの403がありません")
+	if e := r.process(context.Background(), "newsletter", "digest", u, "記事", "", "", []string{id}); e != nil {
+		t.Fatal(e)
 	}
-	if r.state.Fetch[id].Method != fetchCrawlbase {
-		t.Fatal("投稿済み本体の取得予約が消えました")
+	if cb != 1 || normal != 4 || !r.state.done([]string{hash("digest\n" + id)}) {
+		t.Fatal("投稿済みdigestの取得を完了できません", cb, normal)
 	}
 	next := restartFetcher(t, r, 6*time.Hour)
 	// 投稿済み本体は要約・再投稿せず、取得だけ再開できる。
-	if e := next.process(context.Background(), "newsletter", "digest", u, "記事", "", "", []string{id}); e != nil || cb != 1 || normal != 2 || len(next.manifest.Articles) != 0 {
+	if e := next.process(context.Background(), "newsletter", "digest", u, "記事", "", "", []string{id}); e != nil || cb != 1 || normal != 4 || len(next.manifest.Articles) != 0 {
 		t.Fatal("投稿済みdigestの再取得が不正", e, normal, cb)
 	}
 }
@@ -606,7 +609,7 @@ func TestExcludedArticlesNeverRequest(t *testing.T) {
 }
 
 func TestFetchFailureLimitAcrossMethods(t *testing.T) {
-	for _, scenario := range []string{"extraction", "server_error", "connection_error", "http_and_crawlbase"} {
+	for _, scenario := range []string{"server_error", "connection_error", "http_and_crawlbase"} {
 		t.Run(scenario, func(t *testing.T) {
 			calls := 0
 			r := fetchTestRunner(t, func(req *http.Request) (*http.Response, error) {
@@ -616,9 +619,6 @@ func TestFetchFailureLimitAcrossMethods(t *testing.T) {
 						return fetchResponse(req, 503, "", nil), nil
 					}
 					return fetchResponse(req, 403, "", nil), nil
-				}
-				if scenario == "extraction" {
-					return fetchResponse(req, 200, "<html><body></body></html>", nil), nil
 				}
 				if scenario == "connection_error" {
 					return nil, context.DeadlineExceeded
@@ -692,5 +692,81 @@ func TestSuccessfulFetchResetsFailuresAndDeferralsDoNotCount(t *testing.T) {
 	r.crawlbase.limit = 5
 	if _, e := r.fetchArticle(context.Background(), u, "記事", ""); e != nil || r.state.Fetch[id].Failures != 0 || r.state.Fetch[id].Stopped {
 		t.Fatal("成功時に失敗回数をリセットしません", e, r.state.Fetch[id])
+	}
+}
+
+func TestArticleFallbackOrder(t *testing.T) {
+	for _, success := range []string{fetchHTTP, fetchJA4, fetchCrawlbase} {
+		t.Run(success, func(t *testing.T) {
+			var methods []string
+			r := fetchTestRunner(t, func(req *http.Request) (*http.Response, error) {
+				method := fetchHTTP
+				if req.URL.Hostname() == "api.crawlbase.com" {
+					method = fetchCrawlbase
+				} else if req.Header.Get("User-Agent") == browserSourceUserAgent {
+					method = fetchJA4
+				}
+				if req.Method == http.MethodGet {
+					methods = append(methods, method)
+				}
+				if method != success {
+					return fetchResponse(req, 403, "blocked", nil), nil
+				}
+				if method == fetchCrawlbase {
+					return goodCrawlResponse(req, fixtureHTML("記事", "")), nil
+				}
+				return fetchResponse(req, 200, fixtureHTML("記事", ""), nil), nil
+			})
+			raw := "https://site.example/article"
+			a, err := r.fetchArticle(context.Background(), raw, "", "")
+			if err != nil || !strings.Contains(a.Markdown, "12ms") {
+				t.Fatal(a, err)
+			}
+			want := []string{fetchHTTP}
+			if success != fetchHTTP {
+				want = append(want, fetchJA4)
+			}
+			if success == fetchCrawlbase {
+				want = append(want, fetchCrawlbase)
+			}
+			if strings.Join(methods, ",") != strings.Join(want, ",") {
+				t.Fatal(methods, want)
+			}
+			f := r.state.Fetch[hash(raw)]
+			if f.Failures != 0 || f.Attempts != 1 || f.Method != success {
+				t.Fatal("フォールバックを複数試行に数えました", f)
+			}
+		})
+	}
+}
+
+func TestFallbackDeferralSurvivesRestart(t *testing.T) {
+	calls := 0
+	r := fetchTestRunner(t, func(req *http.Request) (*http.Response, error) {
+		calls++
+		if req.URL.Hostname() == "api.crawlbase.com" {
+			return goodCrawlResponse(req, fixtureHTML("記事", "")), nil
+		}
+		return fetchResponse(req, 403, "blocked", nil), nil
+	})
+	r.crawlbase.token = ""
+	r.maxFetchFailures = 1
+	raw := "https://site.example/article"
+	id := hash(raw)
+	if _, err := r.fetchArticle(context.Background(), raw, "", ""); !errors.Is(err, errFetchDeferred) {
+		t.Fatal(err)
+	}
+	next := restartFetcher(t, r, time.Hour)
+	f := next.state.Fetch[id]
+	if f.Method != fetchCrawlbase || f.Failures != 0 || f.Stopped {
+		t.Fatal("保留を取得失敗に数えました", f)
+	}
+	before := calls
+	if _, err := next.fetchArticle(context.Background(), raw, "", ""); !errors.Is(err, errFetchDeferred) || calls != before {
+		t.Fatal(err, calls)
+	}
+	next.crawlbase.token = "test"
+	if _, err := next.fetchArticle(context.Background(), raw, "", ""); err != nil || calls != before+1 {
+		t.Fatal("未設定で保留した取得を再開できません", err)
 	}
 }

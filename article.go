@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,6 +14,9 @@ import (
 	readability "github.com/mackee/go-readability"
 	"golang.org/x/net/html"
 )
+
+var errNoArticleContent = errors.New("本文を抽出できませんでした")
+var errBotChallenge = errors.New("bot確認画面が返されました")
 
 type Article struct {
 	Title, URL, Markdown, HTML string
@@ -147,7 +151,7 @@ func fetchArticle(ctx context.Context, c *http.Client, raw, title, mime string) 
 	}
 	req, _ := http.NewRequestWithContext(ctx, http.MethodHead, u, nil)
 	req.Header.Set("User-Agent", userAgent)
-	r, e := doSourceRequest(c, req)
+	r, e := c.Do(req)
 	if e == nil {
 		r.Body.Close()
 		if r.StatusCode == http.StatusTooManyRequests {
@@ -162,7 +166,7 @@ func fetchArticle(ctx context.Context, c *http.Client, raw, title, mime string) 
 	}
 	req, _ = http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	req.Header.Set("User-Agent", userAgent)
-	r, e = doSourceRequest(c, req)
+	r, e = c.Do(req)
 	if e != nil {
 		return a, fmt.Errorf("記事の取得に失敗しました")
 	}
@@ -189,6 +193,9 @@ func readArticleResponse(a Article, r *http.Response) (Article, error) {
 	doc, e := html.Parse(strings.NewReader(string(b)))
 	if e != nil {
 		return a, fmt.Errorf("HTMLの解析に失敗しました")
+	}
+	if isBotChallenge(r, doc) {
+		return a, errBotChallenge
 	}
 	finalURL := a.URL
 	a.finalURL = finalURL
@@ -227,13 +234,17 @@ func readArticleResponse(a Article, r *http.Response) (Article, error) {
 	var buf strings.Builder
 	_ = html.Render(&buf, doc)
 	extracted, e := readability.Extract(buf.String(), readability.DefaultOptions())
-	if e != nil || extracted.Root == nil {
-		return a, fmt.Errorf("本文を抽出できませんでした")
+	if e == nil && extracted.Root != nil {
+		a.HTML = readability.ToHTML(extracted.Root)
+		a.Markdown = readability.ToMarkdown(extracted.Root)
+	} else {
+		a.HTML, a.Markdown = structuredArticleContent(doc)
+		if strings.TrimSpace(a.Markdown) == "" {
+			return a, errNoArticleContent
+		}
 	}
-	a.HTML = readability.ToHTML(extracted.Root)
-	a.Markdown = readability.ToMarkdown(extracted.Root)
 	if strings.TrimSpace(a.Markdown) == "" {
-		return a, fmt.Errorf("抽出した本文が空です")
+		return a, errNoArticleContent
 	}
 	if a.Title == "" {
 		a.Title = extracted.Title

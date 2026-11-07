@@ -66,6 +66,7 @@ func hasJapaneseArticle(a Article, target string) bool {
 }
 
 func (r *runner) processFeedItem(ctx context.Context, f Feed, item *gofeed.Item, raw, mime string, keys []string) error {
+	r.skipHTTP = f.SkipHTTP
 	if f.FeedContent && strings.TrimSpace(item.Content) != "" && mime == "" {
 		return r.processWithContent(ctx, f.Name, f.Mode, raw, item.Title, mime, "", keys, item.Content)
 	}
