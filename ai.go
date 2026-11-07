@@ -70,7 +70,7 @@ func newAI() (*AI, error) {
 		}
 		a.levels = append(a.levels, openai.DecisionNewParamsQuestionScoreLevel{Label: l})
 	}
-	a.threshold, e = strconv.ParseFloat(env("INTEREST_THRESHOLD", "1.0"), 64)
+	a.threshold, e = strconv.ParseFloat(env("INTEREST_THRESHOLD", "1.2"), 64)
 	if e != nil || math.IsNaN(a.threshold) || math.IsInf(a.threshold, 0) || a.threshold < 0 || a.threshold > float64(len(labels)-1) {
 		return nil, fmt.Errorf("INTEREST_THRESHOLDがスコア範囲外です")
 	}
