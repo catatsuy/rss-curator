@@ -147,5 +147,40 @@
     "name": "Filippo Valsorda",
     "url": "https://words.filippo.io/rss/",
     "mode": "select"
+  },
+  {
+    "name": "NGINX Community Blog",
+    "url": "https://blog.nginx.org/feed",
+    "mode": "select"
+  },
+  {
+    "name": "Google Cloud Blog",
+    "url": "https://cloudblog.withgoogle.com/rss/",
+    "mode": "select"
+  },
+  {
+    "name": "Google Open Source Blog",
+    "url": "https://opensource.googleblog.com/feeds/posts/default?alt=rss",
+    "mode": "select"
+  },
+  {
+    "name": "OpenSSL Blog",
+    "url": "https://openssl-library.org/post/atom.xml",
+    "mode": "select"
+  },
+  {
+    "name": "gVisor Blog",
+    "url": "https://gvisor.dev/blog/index.xml",
+    "mode": "select"
+  },
+  {
+    "name": "Tailscale Blog",
+    "url": "https://tailscale.com/blog/index.xml",
+    "mode": "select"
+  },
+  {
+    "name": "AWS Database Blog",
+    "url": "https://aws.amazon.com/blogs/database/feed/",
+    "mode": "select"
   }
 ]
