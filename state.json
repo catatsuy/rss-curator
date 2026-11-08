@@ -6002,8 +6002,8 @@
       "method": "http",
       "attempts": 0,
       "failures": 0,
-      "next_attempt": "2026-11-08T04:32:15.687065536Z",
-      "last_seen": "2026-11-08T03:32:16.574937981Z"
+      "next_attempt": "2026-11-08T08:57:09.544594034Z",
+      "last_seen": "2026-11-08T07:57:10.596135196Z"
     },
     "9f89390cee26a1b09b37550659097f92ee02919c73ccf28cff79cfff7e0a8bcd": {
       "method": "http",
@@ -6044,13 +6044,13 @@
       "last_seen": "2026-11-06T02:18:18.449979044Z"
     },
     "b8acd5d605b0c189537e73b6ac2cbdb465aab25683fad43c59e37f165ae55a65": {
-      "method": "ja4",
+      "method": "crawlbase",
       "last_failure": "http_429",
-      "attempts": 1,
-      "failures": 1,
-      "last_attempt": "2026-11-08T03:32:15.687065536Z",
-      "next_attempt": "2026-11-08T04:32:15.687065536Z",
-      "last_seen": "2026-11-08T03:32:15.687065536Z"
+      "attempts": 2,
+      "failures": 2,
+      "last_attempt": "2026-11-08T07:57:09.544594034Z",
+      "next_attempt": "2026-11-08T08:57:09.544594034Z",
+      "last_seen": "2026-11-08T07:57:09.544594034Z"
     },
     "ba668d431f478947c4ade0efec9a968bcc7b8fe13d2fad33754599819703222d": {
       "method": "http",
@@ -6160,7 +6160,7 @@
     }
   },
   "host_retry_after": {
-    "020fc60f70bc09ef4f116995a4002989a77787fb5a78291dcba1664584f2fc95": "2026-11-08T04:32:15.687065536Z",
-    "191347bfe55d0ca9a574db77bc8648275ce258461450e793528e0cc6d2dcf8f5": "2026-11-08T04:32:15.687065536Z"
+    "020fc60f70bc09ef4f116995a4002989a77787fb5a78291dcba1664584f2fc95": "2026-11-08T08:57:09.544594034Z",
+    "191347bfe55d0ca9a574db77bc8648275ce258461450e793528e0cc6d2dcf8f5": "2026-11-08T08:57:09.544594034Z"
   }
 }
