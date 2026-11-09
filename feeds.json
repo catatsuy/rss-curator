@@ -139,11 +139,6 @@
     "mode": "select"
   },
   {
-    "name": "Potaroo",
-    "url": "http://www.potaroo.net/rss.xml",
-    "mode": "select"
-  },
-  {
     "name": "Filippo Valsorda",
     "url": "https://words.filippo.io/rss/",
     "mode": "select"
