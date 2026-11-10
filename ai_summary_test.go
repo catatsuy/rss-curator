@@ -55,7 +55,7 @@ func TestSummarizeSingleRequest(t *testing.T) {
 			t.Error("要約用の指示が渡されていません")
 		}
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"id":"resp_test","status":"completed","output":[{"type":"message","role":"assistant","content":[{"type":"output_text","text":"- 概要\\n- 技術的な発見","annotations":[]}]}]}`)
+		fmt.Fprint(w, `{"id":"resp_test","status":"completed","output":[{"type":"message","role":"assistant","content":[{"type":"output_text","text":"- 概要\n- 技術的な発見","annotations":[]}]}]}`)
 	}))
 	defer srv.Close()
 
