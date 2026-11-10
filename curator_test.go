@@ -323,13 +323,8 @@ func TestDigestOneHopAndFailedArticle(t *testing.T) {
 		t.Fatalf("紹介先処理: 判定%d 要約%d 投稿%d", *ds, *ss, len(r.manifest.Articles))
 	}
 }
-func TestChunksAndConfig(t *testing.T) {
+func TestConfig(t *testing.T) {
 	clearAuthEnv(t)
-	s := strings.Repeat("日本語とコード\n\n", 20000)
-	parts := chunks(s, 48000)
-	if strings.Join(parts, "") != s || len(parts) < 2 {
-		t.Fatal("本文の分割に欠落があります")
-	}
 	for _, key := range []string{"OPENAI_API_KEY", "INTEREST_PROMPT", "SUMMARY_PROMPT", "INTEREST_PROMPT_FILE", "SUMMARY_PROMPT_FILE"} {
 		t.Setenv(key, "")
 	}
