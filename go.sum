@@ -20,6 +20,8 @@ github.com/openai/openai-go/v3 v3.97.0 h1:kwaui9B6oP/Ezf+IQ8klNQy274B9cbZkBLwsEV
 github.com/openai/openai-go/v3 v3.97.0/go.mod h1:uMht5xIbHFTRAD05AiQXzNT9hJGklZHsCnyzeWiteGo=
 github.com/openai/openai-go/v3 v3.98.0 h1:HHmNpTQykkgARTvPobfQqSItV57os4AJ+fB4megoH6E=
 github.com/openai/openai-go/v3 v3.98.0/go.mod h1:uMht5xIbHFTRAD05AiQXzNT9hJGklZHsCnyzeWiteGo=
+github.com/openai/openai-go/v3 v3.99.0 h1:Pc2z4NLWJ1dtwk7Trx4LlWNBMwcT5z99Q7cT0H6xcWM=
+github.com/openai/openai-go/v3 v3.99.0/go.mod h1:rpJT0W8BAp3rmc3a4HpqeuwpBF6tB6OdUPTXB0rFLGE=
 github.com/refraction-networking/utls v1.8.2 h1:j4Q1gJj0xngdeH+Ox/qND11aEfhpgoEvV+S9iJ2IdQo=
 github.com/refraction-networking/utls v1.8.2/go.mod h1:jkSOEkLqn+S/jtpEHPOsVv/4V4EVnelwbMQl4vCWXAM=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=
