@@ -138,6 +138,37 @@ func itemDate(i *gofeed.Item) time.Time {
 	}
 	return time.Time{}
 }
+// RSSに相対URLが含まれる場合、フィードの公開URLを基準に解決する。
+// パース不能なURLやHTTP以外の絶対URLは変更せず、後段のnormalizeで拒否する。
+func resolveFeedLink(base, raw string) string {
+	if raw == "" {
+		return raw
+	}
+	ref, err := url.Parse(raw)
+	if err != nil || ref.IsAbs() {
+		return raw
+	}
+	feedURL, err := url.Parse(base)
+	if err != nil {
+		return raw
+	}
+	return feedURL.ResolveReference(ref).String()
+}
+
+func resolveFeedItemLinks(f Feed, item *gofeed.Item) {
+	// linkを省略し、URLとして使えるGUIDだけを指定するRSSもある。
+	if strings.TrimSpace(item.Link) == "" {
+		guid := strings.TrimSpace(item.GUID)
+		if strings.HasPrefix(guid, "/") || strings.HasPrefix(guid, "https://") || strings.HasPrefix(guid, "http://") {
+			item.Link = guid
+		}
+	}
+	item.Link = resolveFeedLink(f.URL, item.Link)
+	for _, enclosure := range item.Enclosures {
+		enclosure.URL = resolveFeedLink(f.URL, enclosure.URL)
+	}
+}
+
 func itemKeys(f Feed, i *gofeed.Item) []string {
 	keys := []string{}
 	if u, e := normalize(i.Link); e == nil {
@@ -380,6 +411,9 @@ func runWithDelivery(ctx context.Context, config, statePath, output string, dry 
 		if e != nil {
 			slog.Error("RSSの処理に失敗しました", "情報源", f.Name, "エラー", e)
 			continue
+		}
+		for _, item := range feed.Items {
+			resolveFeedItemLinks(f, item)
 		}
 		sort.SliceStable(feed.Items, func(i, j int) bool { return itemDate(feed.Items[i]).After(itemDate(feed.Items[j])) })
 		first := !s.Initialized[hash(f.URL)]
