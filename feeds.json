@@ -174,11 +174,6 @@
     "mode": "select"
   },
   {
-    "name": "AWS Database Blog",
-    "url": "https://aws.amazon.com/blogs/database/feed/",
-    "mode": "select"
-  },
-  {
     "name": "All Things Distributed",
     "url": "https://www.allthingsdistributed.com/atom.xml",
     "mode": "select"
