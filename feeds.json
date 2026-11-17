@@ -5,6 +5,16 @@
     "mode": "select"
   },
   {
+    "name": "Claude Resources",
+    "url": "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_claude.xml",
+    "mode": "select"
+  },
+  {
+    "name": "Claude Developer Blog",
+    "url": "https://claude.dev/rss.xml",
+    "mode": "select"
+  },
+  {
     "name": "Valkey",
     "url": "https://valkey.io/atom.xml",
     "mode": "select"
