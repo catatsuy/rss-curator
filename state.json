@@ -6923,16 +6923,6 @@
       "last_attempt": "2026-11-04T01:32:50.932529742Z",
       "last_seen": "2026-11-04T01:32:50.932529742Z"
     },
-    "16488328fe06278c9a2837872a8c50020ecb86d95d0f2fd799fcd5daca0cff73": {
-      "method": "crawlbase",
-      "last_failure": "http_403",
-      "attempts": 1,
-      "failures": 1,
-      "last_attempt": "2026-10-18T01:59:28.209712615Z",
-      "last_seen": "2026-10-18T02:11:15.930456025Z",
-      "stopped": true,
-      "stop_reason": "excluded_job"
-    },
     "1af8e2479e9fb4751ef8599339792cf4a9c0f0f1123b24d5ea44ea1f3efb3c32": {
       "method": "ja4",
       "attempts": 1,
@@ -6977,26 +6967,6 @@
       "failures": 0,
       "last_attempt": "2026-11-10T01:45:55.874817989Z",
       "last_seen": "2026-11-10T01:45:55.874817989Z"
-    },
-    "231a1fd23df14c4776b7428c6deff8236e393b386fd9e33ff59b63e59ead54d9": {
-      "method": "http",
-      "last_failure": "extraction_failed",
-      "attempts": 3,
-      "failures": 3,
-      "last_attempt": "2026-10-18T02:10:14.73877903Z",
-      "last_seen": "2026-10-18T02:10:14.73877903Z",
-      "stopped": true,
-      "stop_reason": "fetch_failure_limit"
-    },
-    "24255a2f0747003fab764e5bcb0886d373dd4bb61fb915e3d2d391ff17733cf4": {
-      "method": "http",
-      "last_failure": "extraction_failed",
-      "attempts": 3,
-      "failures": 3,
-      "last_attempt": "2026-10-18T02:11:10.378772094Z",
-      "last_seen": "2026-10-18T02:11:10.378772094Z",
-      "stopped": true,
-      "stop_reason": "fetch_failure_limit"
     },
     "2484f4ecd521e5e08a88621d4530c965fbb831c8d82614aef9edd69cc53f9250": {
       "method": "http",
@@ -7082,16 +7052,6 @@
       "last_attempt": "2026-11-06T02:18:15.509980574Z",
       "last_seen": "2026-11-06T02:18:15.509980574Z"
     },
-    "433538cf1c4bb7c739809b7fda28ce962bb46b1003799a28291528e8fc8aa637": {
-      "method": "http",
-      "last_failure": "extraction_failed",
-      "attempts": 3,
-      "failures": 3,
-      "last_attempt": "2026-10-18T02:10:15.382316322Z",
-      "last_seen": "2026-10-18T02:10:15.382316322Z",
-      "stopped": true,
-      "stop_reason": "fetch_failure_limit"
-    },
     "454a7c36973c53789b593f22adfa6516fc33ddab583db29bdc20c076618e9dbe": {
       "method": "ja4",
       "attempts": 1,
@@ -7115,16 +7075,6 @@
       "stopped": true,
       "stop_reason": "no_article_content"
     },
-    "4d642a130cc4e93ede5f41e80ff2f95d1cc28b2db0f5211e0bded34258ab4b16": {
-      "method": "crawlbase",
-      "last_failure": "http_403",
-      "attempts": 1,
-      "failures": 1,
-      "last_attempt": "2026-10-18T01:59:28.201537782Z",
-      "last_seen": "2026-10-18T02:11:15.927558286Z",
-      "stopped": true,
-      "stop_reason": "excluded_job"
-    },
     "4f7cca1668922f8eda1c8c69af8bf3564e5be3557bb446707b93b5c70c220406": {
       "method": "http",
       "attempts": 1,
@@ -7138,26 +7088,6 @@
       "failures": 0,
       "last_attempt": "2026-11-06T02:18:14.188029719Z",
       "last_seen": "2026-11-06T02:18:14.188029719Z"
-    },
-    "59de6aa1c2d0688a6e2d94aec1434229481e6e3f1fe2ef566d01479501555b81": {
-      "method": "http",
-      "last_failure": "extraction_failed",
-      "attempts": 2,
-      "failures": 2,
-      "last_attempt": "2026-10-18T02:01:49.693758706Z",
-      "last_seen": "2026-10-18T02:10:15.247165056Z",
-      "stopped": true,
-      "stop_reason": "excluded_job"
-    },
-    "59df0b0c4137d16f0400317ec021daf67d7190bd955a4ec3ce57aca04697e289": {
-      "method": "http",
-      "last_failure": "extraction_failed",
-      "attempts": 2,
-      "failures": 2,
-      "last_attempt": "2026-10-18T02:01:52.140795203Z",
-      "last_seen": "2026-10-18T02:11:11.350794245Z",
-      "stopped": true,
-      "stop_reason": "excluded_video"
     },
     "5b318552ee072eaf8556288d018dfc62488ca23e89e81d0faed88236d531a68b": {
       "method": "ja4",
@@ -7198,16 +7128,6 @@
       "last_attempt": "2026-11-12T11:49:01.043773124Z",
       "last_seen": "2026-11-12T11:49:01.043773124Z"
     },
-    "6c8d9bc62d432a154d584f997ab34ebacfb83c1bf11d7ddfdbd01007e7f1138a": {
-      "method": "http",
-      "last_failure": "extraction_failed",
-      "attempts": 3,
-      "failures": 3,
-      "last_attempt": "2026-10-18T02:10:15.033074067Z",
-      "last_seen": "2026-10-18T02:10:15.033074067Z",
-      "stopped": true,
-      "stop_reason": "fetch_failure_limit"
-    },
     "6d1f2cdd5b2cebd5364ff28f2806ba54cc52292f541d01ff32b715f6ed510d85": {
       "method": "http",
       "attempts": 1,
@@ -7243,16 +7163,6 @@
       "last_attempt": "2026-11-11T07:04:52.425169415Z",
       "last_seen": "2026-11-11T07:04:52.425169415Z"
     },
-    "79f356a2729676e20b41107f8bbd9375d658dcd218c8332f4a727bd5e6e6bfa4": {
-      "method": "http",
-      "last_failure": "extraction_failed",
-      "attempts": 3,
-      "failures": 3,
-      "last_attempt": "2026-10-18T02:11:10.598758351Z",
-      "last_seen": "2026-10-18T02:11:10.598758351Z",
-      "stopped": true,
-      "stop_reason": "fetch_failure_limit"
-    },
     "7a25488d0114ee7e580b7f5619c031a97c5d624512066d9d27d13bed2bba7c81": {
       "method": "ja4",
       "attempts": 1,
@@ -7266,16 +7176,6 @@
       "failures": 0,
       "last_attempt": "2026-11-16T02:23:18.310972263Z",
       "last_seen": "2026-11-16T02:23:18.310972263Z"
-    },
-    "805f5644aad769e311cccf8ed6a17f4ab4247d8b5d202ee052c58b5053ed1787": {
-      "method": "crawlbase",
-      "last_failure": "http_403",
-      "attempts": 1,
-      "failures": 1,
-      "last_attempt": "2026-10-18T01:59:23.780498768Z",
-      "last_seen": "2026-10-18T02:10:15.242324311Z",
-      "stopped": true,
-      "stop_reason": "excluded_job"
     },
     "84d16901341528e860b520a9a618cdea104526d11eae4b4486c75ae7ec0e6943": {
       "method": "ja4",
@@ -7315,16 +7215,6 @@
       "failures": 0,
       "last_attempt": "2026-10-27T01:33:36.604254402Z",
       "last_seen": "2026-10-27T01:33:36.604254402Z"
-    },
-    "906034f4c108ba9756f514a936ee9f9bbe3554a1c17ef892db31742a85e44631": {
-      "method": "crawlbase",
-      "last_failure": "http_403",
-      "attempts": 1,
-      "failures": 1,
-      "last_attempt": "2026-10-18T01:59:28.25028729Z",
-      "last_seen": "2026-10-18T02:11:15.935507342Z",
-      "stopped": true,
-      "stop_reason": "excluded_job"
     },
     "90983e5d336563173ea23b891e239d82028239dd1c4d478522cc51295c9c6921": {
       "method": "http",
@@ -7481,16 +7371,6 @@
       "failures": 0,
       "last_attempt": "2026-10-26T16:52:06.088170557Z",
       "last_seen": "2026-10-26T16:52:06.088170557Z"
-    },
-    "d730fef94ea38ecaadbccaf1be914d7ff9a337470f92abf0e8b341039b2a5882": {
-      "method": "http",
-      "last_failure": "extraction_failed",
-      "attempts": 3,
-      "failures": 3,
-      "last_attempt": "2026-10-18T02:11:16.537085326Z",
-      "last_seen": "2026-10-18T02:11:16.537085326Z",
-      "stopped": true,
-      "stop_reason": "fetch_failure_limit"
     },
     "d807a38a6a38126c5ec11eb4a77fa93c10fc2aaf10f2d00decca1b244a0594e0": {
       "method": "http",
