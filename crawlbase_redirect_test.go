@@ -28,10 +28,10 @@ func TestCrawlbaseRetriesRedirectTarget(t *testing.T) {
 					if target != final {
 						t.Fatalf("unexpected retry URL: %s", target)
 					}
-					return fetchResponse(req, 200, japaneseHTML(final), map[string]string{"cb_status": "200", "original_status": "200", "url": final}), nil
+					return fetchResponse(req, 200, fixtureHTML("Article", ""), map[string]string{"cb_status": "200", "original_status": "200", "url": final}), nil
 				})}
 				a, result, err := c.fetch(context.Background(), start, "記事")
-				if err != nil || result.Reason != "success" || a.finalURL != final || !hasJapaneseArticle(a, final) || c.used != 2 || strings.Contains(a.Markdown, "DO_NOT_SUMMARIZE") {
+				if err != nil || result.Reason != "success" || a.finalURL != final || strings.TrimSpace(a.Markdown) == "" || c.used != 2 || strings.Contains(a.Markdown, "DO_NOT_SUMMARIZE") {
 					t.Fatal("転送先の再取得に失敗", result, err, c.used)
 				}
 			})

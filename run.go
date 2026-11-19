@@ -20,13 +20,12 @@ import (
 )
 
 type Feed struct {
-	Name           string `json:"name"`
-	URL            string `json:"url"`
-	Mode           string `json:"mode"`
-	PathSuffix     string `json:"path_suffix,omitempty"`
-	OpenAIJapanese bool   `json:"openai_japanese,omitempty"`
-	FeedContent    bool   `json:"feed_content,omitempty"`
-	SkipHTTP       bool   `json:"skip_http,omitempty"`
+	Name        string `json:"name"`
+	URL         string `json:"url"`
+	Mode        string `json:"mode"`
+	PathSuffix  string `json:"path_suffix,omitempty"`
+	FeedContent bool   `json:"feed_content,omitempty"`
+	SkipHTTP    bool   `json:"skip_http,omitempty"`
 }
 
 func (f Feed) includes(raw string) bool {
@@ -89,9 +88,6 @@ func readFeeds(path string) ([]Feed, error) {
 		}
 		f.URL = u
 		seen[u] = true
-		if f.OpenAIJapanese && (f.URL != openAIFeedURL || f.Mode != "select") {
-			return nil, fmt.Errorf("openai_japaneseはOpenAI公式RSSのselectモードでのみ指定できます")
-		}
 		if f.Mode != "select" && f.Mode != "all" && f.Mode != "digest" {
 			return nil, fmt.Errorf("フィードのモードが不正です")
 		}

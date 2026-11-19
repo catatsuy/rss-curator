@@ -99,7 +99,6 @@
     "name": "OpenAI",
     "url": "https://openai.com/news/rss.xml",
     "mode": "select",
-    "openai_japanese": true,
     "skip_http": true
   },
   {
