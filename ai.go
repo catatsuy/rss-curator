@@ -59,7 +59,7 @@ func newAI() (*AI, error) {
 	if e != nil {
 		return nil, e
 	}
-	a := &AI{client: openai.NewClient(authOption, option.WithMaxRetries(0), option.WithRequestTimeout(5*time.Minute)), interestPrompt: ip, summaryPrompt: sp, interestModel: env("INTEREST_MODEL", "gpt-6-luna"), summaryModel: env("SUMMARY_MODEL", "gpt-6.1-sol")}
+	a := &AI{client: openai.NewClient(authOption, option.WithMaxRetries(0), option.WithRequestTimeout(5*time.Minute)), interestPrompt: ip, summaryPrompt: sp, interestModel: env("INTEREST_MODEL", "gpt-6-luna"), summaryModel: env("SUMMARY_MODEL", "gpt-6.1-terra")}
 	labels := strings.Split(env("INTEREST_LEVELS", "新しい技術的な学びが乏しい,具体的な学びはあるが深さや新規性は限定的,深い技術的知見、重要な発見、実践的な学び、または関心の高い技術領域における重要な動向がある"), ",")
 	if len(labels) < 2 || len(labels) > 10 {
 		return nil, fmt.Errorf("INTEREST_LEVELSは2〜10段階にしてください")
