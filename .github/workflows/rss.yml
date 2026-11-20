@@ -33,7 +33,7 @@ jobs:
       NOTIFY_SLACK_TOKEN: ${{ secrets.NOTIFY_SLACK_TOKEN }}
       NOTIFY_SLACK_CHANNEL_ID: ${{ secrets.NOTIFY_SLACK_CHANNEL_ID }}
       INTEREST_MODEL: ${{ vars.INTEREST_MODEL || 'gpt-6-luna' }}
-      SUMMARY_MODEL: ${{ vars.SUMMARY_MODEL || 'gpt-6.1-sol' }}
+      SUMMARY_MODEL: ${{ vars.SUMMARY_MODEL || 'gpt-6.1-terra' }}
       INTEREST_THRESHOLD: ${{ vars.INTEREST_THRESHOLD || '1.2' }}
       DRY_RUN: ${{ inputs.dry_run || false }}
     steps:
