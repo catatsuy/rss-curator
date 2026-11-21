@@ -27,7 +27,7 @@
   {
     "name": "OONI",
     "url": "https://ooni.org/reports/index.xml",
-    "mode": "select"
+    "mode": "all"
   },
   {
     "name": "Feisty Duck",
