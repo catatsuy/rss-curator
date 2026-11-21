@@ -179,7 +179,7 @@ PDFはタイトルとURLだけを通知します。本文のダウンロード�
 | `ai.go` / `auth.go` | 認証、プロンプト、興味判定、本文打ち切り・要約、APIエラーの秘匿 |
 | `state.go` / `digest.go` / `failure_notice.go` | 状態ファイルの保存、紹介先の進捗、取得断念通知 |
 | `scripts/run.sh` | Slack投稿、成功応答、状態ブランチへのcommit / push、一時ファイルの後始末 |
-| `.github/workflows/rss.yml` | 定期起動、Secrets注入、ビルド、同時実行制御 |
+| `.github/workflows/rss.yml` | 定期起動、OIDC設定とSecrets注入、ビルド、同時実行制御 |
 | `.github/workflows/ci.yml` | push・Pull Request時のビルド、オフラインテスト、`go vet` |
 
 GoとShellは標準入出力で連携します。Goが`ready`または`link`を送り、Shellが投稿成功を`posted`で返します。Goは処理済みを保存して`saved`を送り、Shellはcommit / pushの成功後に`continue`を返します。どちらかが失敗した場合は次の記事へ進みません。
@@ -214,9 +214,51 @@ SlackとGitの更新は同時には確定できないため、投稿成功から
 
 ## GitHub Actionsで使う
 
-OpenAIへの認証にはAPIキーを使います。GitHubの **Settings → Secrets and variables → Actions → Secrets** に、`OPENAI_API_KEY`という名前でAPIキーを登録してください。ワークフローはこのSecretを読み込みます。
+GitHub ActionsからOpenAIへはGitHub OIDCとWorkload Identity Federationで認証します。**既存のOpenAI Project `rss-summarizer`を使い、新しいProjectは作成しません。** このProjectにService Account `rss-curator`を置くことで、従来と同じProjectの利用料金・予算・モデル利用設定を維持します。ローカル実行では従来どおり`OPENAI_API_KEY`を利用できます。
 
-Workload Identity用のVariablesや`id-token: write`は不要です。以前登録したVariablesが残っていても、APIキーを優先します。
+### OpenAI Platformの設定
+
+OpenAI Platformで対象Organizationを選び、**Settings → Projects → `rss-summarizer`** を開きます。Project IDを控え、現在の料金履歴、予算、モデル設定を確認してください。このProject内でService Account `rss-curator` を利用します。Mapping作成時に **Create a new service account in this project** を選んで同名のアカウントを作成できます。既存ならそれを選びます。発行されたAPIキーはGitHubには登録しません。管理、ファイル、ベクターストア等の権限は付けません。
+
+次に **Organization Settings → Security → Workload Identity Provider** で既存Providerを確認します。IssuerとAudienceが一致するProviderがあれば再利用します。現在は既存の `github-actions`（ID `idp_765d97971a1da0d24ce77749`）を使用しています。存在しない環境では **Create** から名前 `github-actions-rss-curator` で作成します。
+
+| 項目 | 設定値 |
+| --- | --- |
+| Name | 既存の `github-actions`、新規作成時は `github-actions-rss-curator` |
+| OIDC Issuer URL | `https://token.actions.githubusercontent.com` |
+| Audience | `https://api.openai.com/v1` |
+| Use uploaded JWKS for token verification | 無効（GitHub OIDC discoveryを利用） |
+| Attribute transformations | なし |
+
+Provider詳細で **Create mapping** を選びます。Mapping名は `rss-curator-main` とし、以下のKey/Valueをすべて完全一致で追加します。
+
+| Key | Value |
+| --- | --- |
+| `iss` | `https://token.actions.githubusercontent.com` |
+| `aud` | `https://api.openai.com/v1` |
+| `repository` | `catatsuy/rss-curator` |
+| `ref` | `refs/heads/main` |
+| `workflow_ref` | `catatsuy/rss-curator/.github/workflows/rss.yml@refs/heads/main` |
+
+Mappingの **Project** は既存の `rss-summarizer`（ID `proj_3Qzd7QimayzJT1Lew9paYW9U`）、**Service account** は同Projectの `rss-curator` にします。新規作成する場合は **Create a new service account in this project** を選び、名前 `rss-curator` を入力します。**Permissions** は **Restricted → Model capabilities: Request**（`api.model.request`）だけに絞ります。設定画面にDecisions専用のRequest権限が別に表示される場合は、その権限も追加してください。交換先はMappingのProjectとService Accountで決まるため、選択したProject IDが移行前と同じであることを保存前に確認します。Provider IDとService Account IDを控えます。現在のService Account IDは `user-7429825d6d804ae2261240ed` です。名前ではなく、それぞれのIDを次のVariablesに登録します。
+
+GitHubの **Settings → Secrets and variables → Actions → Variables** に次を登録します。
+
+| Repository variable | 値 |
+| --- | --- |
+| `OPENAI_IDENTITY_PROVIDER_ID` | 上記ProviderのID |
+| `OPENAI_SERVICE_ACCOUNT_ID` | 上記Service AccountのID |
+| `OPENAI_WIF_AUDIENCE` | `https://api.openai.com/v1` |
+
+`.github/workflows/rss.yml`の`curate` jobには`id-token: write`と状態保存用の`contents: write`を設定しています。SDKはGitHubのOIDCトークンを取得し、OpenAIの短期アクセストークンに交換します。トークンやAPIキーをログに出力しないでください。
+
+### 動作確認とAPIキーの廃止
+
+`main`にワークフロー変更を反映し、Actionsの **RSSの選別とSlack投稿 → Run workflow** で`dry_run`を**無効**にして実行します。Mappingは`main`の`rss.yml`に限定されるため、他ブランチからの実行では交換できません。Actionsのログで、OIDC取得・トークン交換のエラーがなく、Decisions APIの興味判定とResponses APIの要約が実行されたことを確認します。対象記事が採用された場合はSlack投稿と`rss-state`への状態保存も確認します。記事がない、または不採用の場合は、その実行だけではResponses・Slack・状態保存まで検証できないため、次の該当記事がある通常実行を確認します。dry-runはAPIを呼ばないので認証確認には使えません。
+
+OpenAI Platformで**同じ`rss-summarizer` Project**を選び、**Analytics → Usage** と **Analytics → Spend** を確認します。Organization analyticsを使う場合はProjectフィルターを`rss-summarizer`に設定します。実行時刻（画面の集計はUTC）とモデルで絞り、DecisionsとResponsesの利用および費用が既存Projectに増えたことを確認します。集計反映には時間差があるため、直後に見えない場合は時間を置いて確認します。作成前後のProject IDが同一であることも照合します。
+
+**OIDCによる実APIリクエスト、Slack投稿、状態保存、既存Projectへの料金計上を確認してから**、GitHubの **Settings → Secrets and variables → Actions → Secrets** で旧`OPENAI_API_KEY` Secretを削除し、OpenAI Platformで対応する旧APIキーを失効させます。確認が完了するまでは旧キーを保持しますが、変更後のワークフローは参照しません。失敗時は旧キーを失効させず、Provider、Mapping、Variables、Actionsログを確認してください。
 
 ### プロンプトとSlack
 
