@@ -7,7 +7,7 @@ require (
 	github.com/mmcdole/gofeed v1.5.0
 	github.com/openai/openai-go/v3 v3.105.0
 	github.com/refraction-networking/utls v1.8.2
-	golang.org/x/net v0.62.0
+	golang.org/x/net v0.63.0
 )
 
 require (
@@ -19,7 +19,7 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
-	golang.org/x/crypto v0.58.0 // indirect
-	golang.org/x/sys v0.49.0 // indirect
-	golang.org/x/text v0.43.0 // indirect
+	golang.org/x/crypto v0.59.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
+	golang.org/x/text v0.44.0 // indirect
 )
