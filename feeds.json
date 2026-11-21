@@ -30,6 +30,11 @@
     "mode": "all"
   },
   {
+    "name": "OONI Blog",
+    "url": "https://ooni.org/blog/index.xml",
+    "mode": "select"
+  },
+  {
     "name": "Feisty Duck",
     "url": "https://www.feistyduck.com/newsletter/feed",
     "mode": "digest"
