@@ -218,19 +218,19 @@ GitHub ActionsからOpenAIへはGitHub OIDCとWorkload Identity Federationで認
 
 ### OpenAI Platformの設定
 
-OpenAI Platformで対象Organizationを選び、**Settings → Projects → `rss-summarizer`** を開きます。Project IDを控え、現在の料金履歴、予算、モデル設定を確認してください。このProject内の **Service accounts → Create** から名前 `rss-curator` のService Accountを作成します。既存ならそれを選びます。発行されたAPIキーはGitHubには登録しません。Service AccountのProject権限は **Model capabilities → Request**（`api.model.request`）など、Decisions APIとResponses APIの実行に必要な権限だけにします。管理、ファイル、ベクターストア等の権限は付けません。
+OpenAI Platformで対象Organizationを選び、**Settings → Projects → `rss-summarizer`** を開きます。Project IDを控え、現在の料金履歴、予算、モデル設定を確認してください。このProject内でService Account `rss-curator` を利用します。Mapping作成時に **Create a new service account in this project** を選んで同名のアカウントを作成できます。既存ならそれを選びます。発行されたAPIキーはGitHubには登録しません。管理、ファイル、ベクターストア等の権限は付けません。
 
-次に **Organization Settings → Security → Workload Identity Provider → Create** で以下を設定します。
+次に **Organization Settings → Security → Workload Identity Provider** で既存Providerを確認します。IssuerとAudienceが一致するProviderがあれば再利用します。現在は既存の `github-actions`（ID `idp_765d97971a1da0d24ce77749`）を使用しています。存在しない環境では **Create** から名前 `github-actions-rss-curator` で作成します。
 
 | 項目 | 設定値 |
 | --- | --- |
-| Name | `github-actions-rss-curator` |
+| Name | 既存の `github-actions`、新規作成時は `github-actions-rss-curator` |
 | OIDC Issuer URL | `https://token.actions.githubusercontent.com` |
 | Audience | `https://api.openai.com/v1` |
 | Use uploaded JWKS for token verification | 無効（GitHub OIDC discoveryを利用） |
 | Attribute transformations | なし |
 
-保存後、Provider詳細で **Service account mapping → Create** を選びます。Mapping名は `rss-curator-main` とし、以下のKey/Valueをすべて完全一致で追加します。
+Provider詳細で **Create mapping** を選びます。Mapping名は `rss-curator-main` とし、以下のKey/Valueをすべて完全一致で追加します。
 
 | Key | Value |
 | --- | --- |
@@ -240,7 +240,7 @@ OpenAI Platformで対象Organizationを選び、**Settings → Projects → `rss
 | `ref` | `refs/heads/main` |
 | `workflow_ref` | `catatsuy/rss-curator/.github/workflows/rss.yml@refs/heads/main` |
 
-Mappingの **Project** は既存の `rss-summarizer`、**Service account** は同Projectの `rss-curator` にします。**Permissions** は`api.model.request`だけに絞ります。設定画面にDecisions専用のRequest権限が別に表示される場合は、その権限も追加してください。交換先はMappingのProjectとService Accountで決まるため、選択したProject IDが移行前と同じであることを保存前に確認します。Provider IDとService Account IDを控えます。名前ではなく、それぞれのIDを次のVariablesに登録します。
+Mappingの **Project** は既存の `rss-summarizer`（ID `proj_3Qzd7QimayzJT1Lew9paYW9U`）、**Service account** は同Projectの `rss-curator` にします。新規作成する場合は **Create a new service account in this project** を選び、名前 `rss-curator` を入力します。**Permissions** は **Restricted → Model capabilities: Request**（`api.model.request`）だけに絞ります。設定画面にDecisions専用のRequest権限が別に表示される場合は、その権限も追加してください。交換先はMappingのProjectとService Accountで決まるため、選択したProject IDが移行前と同じであることを保存前に確認します。Provider IDとService Account IDを控えます。現在のService Account IDは `user-7429825d6d804ae2261240ed` です。名前ではなく、それぞれのIDを次のVariablesに登録します。
 
 GitHubの **Settings → Secrets and variables → Actions → Variables** に次を登録します。
 
