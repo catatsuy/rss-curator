@@ -1,6 +1,7 @@
 module github.com/catatsuy/rss-curator
 
 go 1.27.2
+
 require (
 	github.com/mackee/go-readability v0.3.1
 	github.com/mmcdole/gofeed v1.5.0
