@@ -20,8 +20,11 @@ jobs:
     timeout-minutes: 90
     permissions:
       contents: write
+      id-token: write
     env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_IDENTITY_PROVIDER_ID: ${{ vars.OPENAI_IDENTITY_PROVIDER_ID }}
+      OPENAI_SERVICE_ACCOUNT_ID: ${{ vars.OPENAI_SERVICE_ACCOUNT_ID }}
+      OPENAI_WIF_AUDIENCE: ${{ vars.OPENAI_WIF_AUDIENCE }}
       CRAWLBASE_TOKEN: ${{ secrets.CRAWLBASE_TOKEN }}
       CRAWLBASE_MAX_REQUESTS: ${{ vars.CRAWLBASE_MAX_REQUESTS || '5' }}
       ARTICLE_MAX_FETCH_FAILURES: ${{ vars.ARTICLE_MAX_FETCH_FAILURES || '3' }}
