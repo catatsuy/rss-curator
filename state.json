@@ -7562,14 +7562,6 @@
       "last_attempt": "2026-11-03T03:32:02.26327237Z",
       "last_seen": "2026-11-03T03:32:02.26327237Z"
     },
-    "0da0c416868b2bff89d7b2b76950b74eeb9fbacd6b9914b7f08111e37ad8a843": {
-      "method": "crawlbase",
-      "attempts": 2,
-      "failures": 0,
-      "crawlbase_attempts": 1,
-      "last_attempt": "2026-10-25T02:12:38.865115137Z",
-      "last_seen": "2026-10-25T02:12:38.865115137Z"
-    },
     "0f5fa25a38888520377ae3dd8ce7eca992e644bc60c4680a3dd62790037cbefd": {
       "method": "ja4",
       "attempts": 1,
@@ -8143,18 +8135,6 @@
       "failures": 0,
       "last_attempt": "2026-11-03T03:32:03.363451619Z",
       "last_seen": "2026-11-03T03:32:03.363451619Z"
-    },
-    "d83e7a0940721e28544ba671d50b6756692f2b33577c4b45f511f8bc4ca959a6": {
-      "method": "crawlbase",
-      "last_failure": "target_forbidden",
-      "attempts": 2,
-      "failures": 2,
-      "crawlbase_attempts": 1,
-      "crawlbase_failures": 1,
-      "last_attempt": "2026-10-25T02:10:48.161024144Z",
-      "last_seen": "2026-10-25T02:10:48.161024144Z",
-      "stopped": true,
-      "stop_reason": "target_forbidden"
     },
     "d97c8a9ea9d5d562f2765cfb5b7cde9cfa1770e3619c24e460752be83e7580e0": {
       "method": "ja4",
