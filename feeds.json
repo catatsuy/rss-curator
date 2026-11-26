@@ -190,6 +190,6 @@
   {
     "name": "All Things Distributed",
     "url": "https://www.allthingsdistributed.com/atom.xml",
-    "mode": "select"
+    "mode": "all"
   }
 ]
